@@ -14,7 +14,7 @@ from utils.rules import generate_extractor_input
 logging.basicConfig(format='%(asctime)s:%(message)s',level=logging.INFO)
 
 class GameDataset(Dataset):
-    def __init__(self, codebase_version, model_version, training_round=50000 ):
+    def __init__(self, codebase_version, model_version, training_round=500):
         self.collection = Collection(codebase_version, model_version)
         self.data = []
         logging.info('Start loading data')
@@ -25,19 +25,18 @@ class GameDataset(Dataset):
                 break
             history = [np.zeros((BOARD_WIDTH, BOARD_HEIGHT))]*8
             value = playout['v']
-            for idx, current_board in enumerate(playout['board_history']):
-                # current_board = playout['board_history'][idx]
-                current_player = playout['player_round'][idx]
+            current_player = playout['player_round'][0]
+            for idx, softmax in enumerate(playout['mcts_softmax']):
+                current_board = playout['board_history'][idx]
                 inputs = generate_extractor_input(current_board, history, current_player)
-                softmax = playout['mcts_softmax'][idx]
+                current_player = -1 if current_player==1 else -1
+                # softmax = playout['mcts_softmax'][idx]
                 self.data.append({
                     'input': np.array(inputs),
                     'softmax': np.array(softmax),
                     'v': float(value),
                 })
-                if count > training_round:
-                    break
-                count += 1
+            count += 1
         self.size = len(self.data)
 
     def __getitem__(self, item):
@@ -61,17 +60,25 @@ if __name__ == "__main__":
                                     weight_decay=l2_const)
 
     x_dataloader = torch.utils.data.DataLoader(
-        dataset=GameDataset('beta', 'v1.0', training_round=100),
-        batch_size=32, shuffle=True, drop_last=True)
-    for batch in x_dataloader:
-        feature = batch['input'].to(device, dtype=torch.float).permute(0, 3, 1, 2)
-        softmax = batch['softmax'].to(device, dtype=torch.float)
-        value = batch['value'].to(device, dtype=torch.float)
+        dataset=GameDataset('beta', DualResNet.VERSION, training_round=200),
+        batch_size=128, shuffle=True, drop_last=True)
+    epochs = 1
+    epoch=0
+    with tqdm(total=len(x_dataloader)//128, ncols=150) as t:
+        t.set_description('Epoch %2d/%2d' % (epoch + 1, epochs))
+        for batch in tqdm(x_dataloader, total=len(x_dataloader)//128):
+            feature = batch['input'].to(device, dtype=torch.float).permute(0, 3, 1, 2)
+            softmax = batch['softmax'].to(device, dtype=torch.float)
+            value = batch['value'].to(device, dtype=torch.float)
 
-        pred_softmax, pred_value = model(feature)
-        value_loss, policy_loss, loss = alpha_loss(pred_softmax, softmax, pred_value, value)
-        print('value: {}, loss {} '.format(value_loss, loss))
-        optimizer.zero_grad()
-        loss.backward()
-        optimizer.step()
+            pred_softmax, pred_value = model(feature)
+            value_loss, policy_loss, loss = alpha_loss(pred_softmax, softmax, pred_value, value)
+            # print('value: {}, loss {} \n'.format(value_loss, loss))
+            t.update(1)
+            t.set_postfix(categorical='%.4f' % policy_loss,
+                        value='%.4f' % value_loss,
+                        total='%.4f' % loss)
+            optimizer.zero_grad()
+            loss.backward()
+            optimizer.step()
 

@@ -44,7 +44,9 @@ def train_selfplay(load_model=None, cpu = 10, rounds=100, log_dir='./log/%s'):
                                     weight_decay=l2_const)
     round_count = 0
     if load_model:
-        checkpoint = torch.load(os.path.join(MODEL_DIR, load_model))
+        logging.info('Load checkpoint model')
+        checkpoint = torch.load(os.path.join(MODEL_DIR, load_model),
+            map_location=lambda storage, loc: storage)
         model.load_state_dict(checkpoint['network'])
         optimizer.load_state_dict(checkpoint['optimizer'])
         round_count = checkpoint['round']
@@ -62,12 +64,10 @@ def train_selfplay(load_model=None, cpu = 10, rounds=100, log_dir='./log/%s'):
         parallel_iter = PARALLEL_SELF_PLAY//int(cpu)
         for iter in tqdm(range(parallel_iter), total=parallel_iter):
             game_stats = multiprocessing_selfplay(model, cpu)
-            # print(len(game_stats))
             result = collection.add_batch(game_stats)
-            # print(result)
 
         dataloader = torch.utils.data.DataLoader(
-            GameDataset('beta', model.VERSION, training_round=30),
+            GameDataset('beta', model.VERSION, training_round=400),
             batch_size=batch_size, shuffle=True, drop_last=True)
         loss = {}
         batch_num = len(dataloader) // batch_size
@@ -81,17 +81,16 @@ def train_selfplay(load_model=None, cpu = 10, rounds=100, log_dir='./log/%s'):
 
                     pred_softmax, pred_value = model(feature)
                     value_loss, policy_loss, loss = alpha_loss(pred_softmax, softmax, pred_value, value)
-
                     t.update(1)
                     t.set_postfix(categorical='%.4f' % policy_loss,
                                 value='%.4f' % value_loss,
                                 total='%.4f' % loss)
         print('Saving model...')
-        save(model, optimizer, round_count, 'DualResNet')
+        save(model, optimizer, round_count, 'DualResNet_{}'.format(round_count))
         round_count += 1
         if round_count > rounds:
             break
 
 if __name__ == "__main__":
     logging.info('start training')
-    train_selfplay(cpu=13)
+    train_selfplay(load_model='DualResNet', cpu=13)

@@ -23,6 +23,7 @@ def self_play(process_rank, model, return_dict, start_color=1, n_playout=100):
         'total_steps':0,
         'initial': start_color, 
         'mcts_softmax': [],
+        'player_round': [],
         'v': 0, # final result
         'time': datetime.now(),
         'board_history': [],
@@ -43,6 +44,7 @@ def self_play(process_rank, model, return_dict, start_color=1, n_playout=100):
         )
         previous_board = np.copy(game.board)
         step = acts[move_idx]
+        history_stats['player_round'].append(game.current)
 
         # logging.info('Step: {}, current player: {}\nBoard: \n{}'.format(idx, game.current, previous_board-step ))
 
