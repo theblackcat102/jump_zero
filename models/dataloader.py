@@ -64,7 +64,7 @@ if __name__ == "__main__":
         dataset=GameDataset('beta', 'v1.0', training_round=100),
         batch_size=32, shuffle=True, drop_last=True)
     for batch in x_dataloader:
-        feature = batch['input'].to(device, dtype=torch.float)
+        feature = batch['input'].to(device, dtype=torch.float).permute(0, 3, 1, 2)
         softmax = batch['softmax'].to(device, dtype=torch.float)
         value = batch['value'].to(device, dtype=torch.float)
 

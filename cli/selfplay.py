@@ -62,9 +62,9 @@ def train_selfplay(load_model=None, cpu = 10, rounds=100, log_dir='./log/%s'):
         parallel_iter = PARALLEL_SELF_PLAY//int(cpu)
         for iter in tqdm(range(parallel_iter), total=parallel_iter):
             game_stats = multiprocessing_selfplay(model, cpu)
-            print(len(game_stats))
+            # print(len(game_stats))
             result = collection.add_batch(game_stats)
-            print(result)
+            # print(result)
 
         dataloader = torch.utils.data.DataLoader(
             GameDataset('beta', model.VERSION, training_round=30),
@@ -75,7 +75,7 @@ def train_selfplay(load_model=None, cpu = 10, rounds=100, log_dir='./log/%s'):
             with tqdm(total=batch_num, ncols=150) as t:
                 t.set_description('Epoch %2d/%2d' % (epoch + 1, epochs))
                 for batch in dataloader:
-                    feature = batch['input'].to(device, dtype=torch.float)
+                    feature = batch['input'].to(device, dtype=torch.float).permute(0, 3, 1, 2)
                     softmax = batch['softmax'].to(device, dtype=torch.float)
                     value = batch['value'].to(device, dtype=torch.float)
 
@@ -94,4 +94,4 @@ def train_selfplay(load_model=None, cpu = 10, rounds=100, log_dir='./log/%s'):
 
 if __name__ == "__main__":
     logging.info('start training')
-    train_selfplay(cpu=12)
+    train_selfplay(cpu=13)
