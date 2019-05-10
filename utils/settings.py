@@ -7,12 +7,12 @@ C_PUCT = 4.0
 
 HISTORY_RECORDS = 3
 
-BLOCKS = 3 # number of residual block
+BLOCKS = 4 # number of residual block
 
 INPLANE = (HISTORY_RECORDS + 1)*2 + 1
 OUTPLANES = BOARD_WIDTH*BOARD_HEIGHT
 OUTPLANES_MAP = 10
-PARALLEL_SELF_PLAY = 5000
+PARALLEL_SELF_PLAY = 30
 PLAYOUT_ROUND = 200
 DEVICE = 'cpu'
 
@@ -41,3 +41,5 @@ TEMPERATURE_MOVE = 5
 
 # storage
 IP= '192.168.0.103'
+
+MODEL_DIR = './checkpoint'

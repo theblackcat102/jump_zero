@@ -144,7 +144,7 @@ class ValueNet(nn.Module):
         return winning
 
 class DualResNet(nn.Module):
-    VERSION = 'v1.0'
+    VERSION = 'v1.01'
     def __init__(self, input_place=INPLANE, extractor_output=OUTPLANES_MAP,outputplane=OUTPLANES):
         super(DualResNet, self).__init__()
         self.extractor = Extractor(input_place, extractor_output)
@@ -163,9 +163,10 @@ class DualResNet(nn.Module):
         device = torch.device('cuda' if torch.cuda.is_available() else 'cpu')
         feature_input = torch.from_numpy(feature_input).type('torch.FloatTensor').to(device)
 
-        output, prediction = self.forward(feature_input)
+        output, value_pred = self.forward(feature_input)
         probability = output.data.cpu().numpy()[0].reshape(BOARD_WIDTH, BOARD_HEIGHT, BOARD_WIDTH, BOARD_HEIGHT)
-        prediction = prediction.data.cpu().numpy()[0][0]
+        prediction = value_pred.data.cpu().numpy()[0][0]
+        del output, value_pred
         # we need to convert probability to a board(matrix) and probability(float)
 
         legal_moves = game.legal_move()
@@ -174,6 +175,18 @@ class DualResNet(nn.Module):
             prob = probability[start_point[0]][start_point[1]][end_point[0]][end_point[1]]
             actions.append((next_board, prob, start_point, end_point))
         return actions, prediction
+
+def alpha_loss(predict_softmax, mcts_softmax, predict_value, mcts_value):
+    '''
+        value_error = (self_play_winner - winner) ** 2
+        policy_error = torch.sum((-self_play_probas * (1e-6 + probas).log()), 1)
+        total_error = (value_error.view(-1) + policy_error).mean()
+    '''
+    value_loss = F.mse_loss(predict_value.view(-1), mcts_value)
+    policy_loss = -torch.mean(torch.sum(mcts_softmax*predict_softmax, 1))
+    loss = value_loss + policy_loss
+    # backward and optimize
+    return value_loss, policy_loss, loss
 
 if __name__ == "__main__":
     # model = Extractor()

@@ -1,8 +1,8 @@
 import numpy as np
 from datetime import datetime
-import multiprocessing as mp
+from torch.multiprocessing import Pool, Process, set_start_method, Manager
 import logging
-
+import torch
 from models.dualresnet import DualResNet
 from utils.game import Game
 from utils.mcts import MCTS
@@ -10,10 +10,14 @@ from utils.settings import EPS, ALPHA
 from utils.rules import has_won
 from utils.database import Collection
 
-
+try:
+    set_start_method('spawn',force=True)
+except RuntimeError:
+    print('faild to spawn mode')
+    pass
 logging.basicConfig(format='%(asctime)s:%(message)s',level=logging.DEBUG)
 
-def self_play(model, start_color=1, n_playout=100):
+def self_play(process_rank, model, return_dict, start_color=1, n_playout=100):
     # player start at 
     history_stats = {
         'total_steps':0,
@@ -40,8 +44,8 @@ def self_play(model, start_color=1, n_playout=100):
         previous_board = np.copy(game.board)
         step = acts[move_idx]
 
-        logging.info('Step: {}, current player: {}\nBoard: \n{}'.format(idx, game.current, previous_board-step ))
-        logging.debug(mcts_softmax)
+        # logging.info('Step: {}, current player: {}\nBoard: \n{}'.format(idx, game.current, previous_board-step ))
+
         end, winner, reward = game.update_state(step)
 
         history_stats['board_history'].append(game.board.tolist())
@@ -51,10 +55,6 @@ def self_play(model, start_color=1, n_playout=100):
         if end:
             history_stats['v'] = reward
             history_stats['winner'] = winner
-            logging.debug('Finish: ')
-            logging.debug(winner)
-            logging.debug(reward)
-            logging.debug(game.board)
             # for i in range(10):
             #     print(game.history[i])
             break
@@ -65,21 +65,36 @@ def self_play(model, start_color=1, n_playout=100):
     # add the final board result
     history_stats['board_history'].append(game.board.tolist())
     history_stats['total_steps'] = idx
+    return_dict[process_rank] = history_stats
     return history_stats
 
-def multiprocessing_selfplay(model):
-    logging.info('Start parallel self play')
-    pool = mp.Pool(10) 
-    res = pool.map(self_play, [model for idx in range(10)])
-    logging.info('End parallel self play')
-    print(res)
-    return res
+def multiprocessing_selfplay(model, cpu=5):
+    logging.debug('Start parallel self play')
+    # pool = Pool(cpu)
+    # models = [ model for i in range(int(cpu*CPU_MULTIPLIER)) ]
+    # res = pool.map(self_play, models)
+    manager = Manager()
+    return_dict = manager.dict()
+    model.share_memory()
+    processes = []
+    for rank in range(cpu):
+        p = Process(target=self_play, args=(rank, model, return_dict))
+        p.start()
+        processes.append(p)
+    for p in processes:
+        p.join()
+    return [ game for game in return_dict.values() ]
 
 if __name__ == "__main__":
     model = DualResNet()
+    device = torch.device('cuda' if torch.cuda.is_available() else 'cpu')
+    model = model.to(device)
     collection = Collection('beta', model.VERSION)
     logging.info('Start selfplay')
-    # game_stats = multiprocessing_selfplay(model)
-    game_stat = self_play(model)
-    collection.add_batch([game_stat])
+    game_stats = multiprocessing_selfplay(model, cpu=5)
+    print('Finish {}'.format(len(game_stats)))
+    collection.add_batch(game_stats)
+    # return_dict = {}
+    # game_stat = self_play(1, model, return_dict)
+    # collection.add_batch(return_dict.values())
     logging.info('End self play')
