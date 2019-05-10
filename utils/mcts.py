@@ -132,10 +132,9 @@ class MCTS:
             # Greedily select next move.
             _, node = node.select(self._c_puct)
             board = node.board
-            if board.shape != (BOARD_WIDTH, BOARD_HEIGHT):
-                raise ValueError('Invalid size inside node'+str( node.shape))
             # update state
             end, _, reward = game.update_state(board)
+
         if end:
             value = reward
         else:
@@ -154,10 +153,13 @@ class MCTS:
         '''
         # number of simulation to run
         for _ in range(self._n_playout):
-            self._playout(state)
+            self._playout(state.copy())
         visits = [ (node.board, node._n_visits) for _, node in self._root._children.items() ]
         acts, visits = zip(*visits)
-        act_probs = softmax(1.0/temperature * np.log(np.array(visits) + 1e-10))
+
+        # convert visits 
+
+        act_probs = softmax(1.0/temperature * np.log( (np.array(visits)/np.sum(visits)) + 1e-10))
         # we will use save this for later
         return acts, act_probs
 

@@ -95,7 +95,7 @@ class PolicyNet(nn.Module):
         self.conv = nn.Conv2d(inplanes, 1, kernel_size=1)
         self.bn = nn.BatchNorm2d(1)
         self.logsoftmax = nn.LogSoftmax(dim=1)
-        self.fc = nn.Linear(outplanes, outplanes)
+        self.fc = nn.Linear(outplanes, outplanes*outplanes)
 
     def forward(self, x):
         """
@@ -158,14 +158,21 @@ class DualResNet(nn.Module):
 
     def policyvalue_function(self, game):
         feature_input = np.array([game.current_state()])
+
         device = torch.device('cuda' if torch.cuda.is_available() else 'cpu')
         feature_input = torch.from_numpy(feature_input).type('torch.FloatTensor').to(device)
-        probability, prediction = self.forward(feature_input)
-        probability = probability.data.cpu().numpy()[0].reshape(BOARD_WIDTH, BOARD_HEIGHT)
+
+        output, prediction = self.forward(feature_input)
+        probability = output.data.cpu().numpy()[0].reshape(BOARD_WIDTH, BOARD_HEIGHT, BOARD_WIDTH, BOARD_HEIGHT)
         prediction = prediction.data.cpu().numpy()[0][0]
         # we need to convert probability to a board(matrix) and probability(float)
 
-        return probability, prediction
+        legal_moves = game.legal_move()
+        actions = []
+        for (next_board, start_point, end_point ) in legal_moves:
+            prob = probability[start_point[0]][start_point[1]][end_point[0]][end_point[1]]
+            actions.append((next_board, prob))
+        return actions, prediction
 
 if __name__ == "__main__":
     # model = Extractor()

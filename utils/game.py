@@ -33,6 +33,7 @@ class Game:
             self.player_step += 1
         else:
             self.opponent_step += 1
+        # switch side
         self.current = 1 if self.current == -1 else -1
         end = False
         winner = None

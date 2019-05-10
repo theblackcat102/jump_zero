@@ -215,4 +215,8 @@ if __name__ == "__main__":
     for (step, previous_points, new_points) in possible_steps:
         print(new_points) # the new location which the piece has moved to new location
         print(step)
+    possible_steps = next_steps(np.array(test_hop), move=1)
+    for (step, previous_points, new_points) in possible_steps:
+        print(new_points) # the new location which the piece has moved to new location
+        print(step-test_hop)
     # extract_chess(black_won, 1)
