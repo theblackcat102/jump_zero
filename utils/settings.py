@@ -5,9 +5,9 @@ BOARD_HEIGHT = 8
 
 C_PUCT = 4.0
 
-HISTORY_RECORDS = 4
+HISTORY_RECORDS = 3
 
-BLOCKS = 2 # number of residual block
+BLOCKS = 3 # number of residual block
 
 INPLANE = (HISTORY_RECORDS + 1)*2 + 1
 OUTPLANES = BOARD_WIDTH*BOARD_HEIGHT

@@ -11,7 +11,7 @@ from utils.rules import has_won
 from utils.database import Collection
 
 
-logging.basicConfig(format='%(asctime)s:%(message)s',filename='training.log',level=logging.INFO)
+logging.basicConfig(format='%(asctime)s:%(message)s',level=logging.DEBUG)
 
 def self_play(model, start_color=1, n_playout=100):
     # player start at 
@@ -40,7 +40,7 @@ def self_play(model, start_color=1, n_playout=100):
         previous_board = np.copy(game.board)
         step = acts[move_idx]
 
-        logging.debug('Step: {}, current player: {}\nBoard: \n{}'.format(idx, game.current, previous_board-step ))
+        logging.info('Step: {}, current player: {}\nBoard: \n{}'.format(idx, game.current, previous_board-step ))
         logging.debug(mcts_softmax)
         end, winner, reward = game.update_state(step)
 
@@ -70,7 +70,7 @@ def self_play(model, start_color=1, n_playout=100):
 def multiprocessing_selfplay(model):
     logging.info('Start parallel self play')
     pool = mp.Pool(10) 
-    res = pool.map(self_play, [model for model in range(10)])
+    res = pool.map(self_play, [model for idx in range(10)])
     logging.info('End parallel self play')
     print(res)
     return res
@@ -79,6 +79,7 @@ if __name__ == "__main__":
     model = DualResNet()
     collection = Collection('beta', model.VERSION)
     logging.info('Start selfplay')
-    game_stats = multiprocessing_selfplay(model)
-    collection.add_batch(game_stats)
+    # game_stats = multiprocessing_selfplay(model)
+    game_stat = self_play(model)
+    collection.add_batch([game_stat])
     logging.info('End self play')
