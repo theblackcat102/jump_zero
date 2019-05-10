@@ -38,3 +38,6 @@ SELF_PLAY_MATCH = PARALLEL_SELF_PLAY
 ## Number of moves before changing temperature to stop
 ## exploration
 TEMPERATURE_MOVE = 5 
+
+# storage
+IP= '192.168.0.103'

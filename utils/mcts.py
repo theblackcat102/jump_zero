@@ -23,13 +23,15 @@ class TreeNode(object):
     prior probability P, and its visit-count-adjusted prior score u.
     '''
 
-    def __init__(self, parent, prior_p, player, board, depth=0):
+    def __init__(self, parent, prior_p, player, board, start=None, end=None, depth=0):
         self._parent = parent
         self._children = {}  # a map from action to TreeNode
         self._n_visits = 0
         self._depth = depth # steps taken since start of game
         self.board = board
         self.player = player
+        self.start = start
+        self.end = end
         self._Q = 0
         self._u = 0
         self._P = prior_p # value policy output
@@ -42,12 +44,14 @@ class TreeNode(object):
         according to the policy function.
         '''
         opposite = 1 if self.player == -1 else -1
-        for (board, prob) in actions:
+        for (board, prob, start, end) in actions:
             board_str = board.tostring()
             if board_str not in self._children:
                 self._children[board_str] = TreeNode(parent=self, 
                     prior_p=prob,
                     player=opposite, 
+                    start=start,
+                    end=end,
                     board=np.copy(board), depth=self._depth+1)
         # expand all children that under this state
 
@@ -109,7 +113,7 @@ class TreeNode(object):
 class MCTS:
 
     def __init__(self, policy_value_fn, initial_player=1, c_puct=C_PUCT, n_playout=PLAYOUT_ROUND):
-        self._root = TreeNode(parent=None, prior_p=1.0, player=initial_player, board=init_board)
+        self._root = TreeNode(parent=None, prior_p=1.0, player=initial_player, board=init_board, start=(0, 0), end=(0, 0) )
         self._c_puct = c_puct
         self._policy = policy_value_fn # output list of (move, prob), and envaluation value
         self._n_playout = n_playout
@@ -154,14 +158,14 @@ class MCTS:
         # number of simulation to run
         for _ in range(self._n_playout):
             self._playout(state.copy())
-        visits = [ (node.board, node._n_visits) for _, node in self._root._children.items() ]
-        acts, visits = zip(*visits)
+        visits = [ (node.board, node._n_visits, node.start, node.end) for _, node in self._root._children.items() ]
+        acts, visits, starts, ends = zip(*visits)
 
         # convert visits 
 
         act_probs = softmax(1.0/temperature * np.log( (np.array(visits)/np.sum(visits)) + 1e-10))
         # we will use save this for later
-        return acts, act_probs
+        return acts, act_probs, generate_mcts_softmax(act_probs, starts, ends).flatten()
 
     def update_with_move(self, new_move):
         """Step forward in the tree, keeping everything we already know

@@ -144,6 +144,7 @@ class ValueNet(nn.Module):
         return winning
 
 class DualResNet(nn.Module):
+    VERSION = 'v1.0'
     def __init__(self, input_place=INPLANE, extractor_output=OUTPLANES_MAP,outputplane=OUTPLANES):
         super(DualResNet, self).__init__()
         self.extractor = Extractor(input_place, extractor_output)
@@ -171,7 +172,7 @@ class DualResNet(nn.Module):
         actions = []
         for (next_board, start_point, end_point ) in legal_moves:
             prob = probability[start_point[0]][start_point[1]][end_point[0]][end_point[1]]
-            actions.append((next_board, prob))
+            actions.append((next_board, prob, start_point, end_point))
         return actions, prediction
 
 if __name__ == "__main__":

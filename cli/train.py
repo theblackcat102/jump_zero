@@ -1,15 +1,22 @@
 import numpy as np
-from models.dualresnet import DualResNet
-from utils.game import Game
-from pptree import *
-from utils.mcts import MCTS
-from utils.rules import has_won
 from datetime import datetime
 import multiprocessing as mp
+import logging
 
-def self_play(start_color=1):
+from models.dualresnet import DualResNet
+from utils.game import Game
+from utils.mcts import MCTS
+from utils.settings import EPS, ALPHA
+from utils.rules import has_won
+from utils.database import Collection
+
+
+logging.basicConfig(format='%(asctime)s:%(message)s',filename='training.log',level=logging.INFO)
+
+def self_play(model, start_color=1, n_playout=100):
     # player start at 
     history_stats = {
+        'total_steps':0,
         'initial': start_color, 
         'mcts_softmax': [],
         'v': 0, # final result
@@ -17,28 +24,37 @@ def self_play(start_color=1):
         'board_history': [],
     }
     game = Game(player=start_color)
-    model = DualResNet()
-    mcts = MCTS(model.policyvalue_function,initial_player=start_color, n_playout=100)
+
+    mcts = MCTS(model.policyvalue_function,initial_player=start_color, n_playout=n_playout)
     idx = 0
     initial_temp = 1.0
     temp = initial_temp
     while True:
     # for _ in range(4):
-        acts, probability = mcts.get_move_visits(game.copy(), temperature=temp)
-
+        acts, probability, mcts_softmax = mcts.get_move_visits(game.copy(), temperature=temp)
         # pick a random move
-        max_prob_idx = np.random.choice(len(probability), p=probability) 
-        history_stats['board_history'].append(game.board)
+        valid_move_count = len(probability)
+        move_idx = np.random.choice(valid_move_count, 
+            p=(1-EPS)*probability + EPS*np.random.dirichlet(ALPHA*np.ones(valid_move_count))
+        )
         previous_board = np.copy(game.board)
-        step, _ = acts[max_prob_idx], probability[max_prob_idx]
-        print('Step: {}, current player: {}\nBoard: \n{}'.format(idx, game.current, previous_board-step ))
+        step = acts[move_idx]
+
+        logging.debug('Step: {}, current player: {}\nBoard: \n{}'.format(idx, game.current, previous_board-step ))
+        logging.debug(mcts_softmax)
         end, winner, reward = game.update_state(step)
+
+        history_stats['board_history'].append(game.board.tolist())
+        history_stats['mcts_softmax'].append(mcts_softmax.tolist())
+
         mcts.update_with_move(step)
         if end:
-            print('Finish: ')
-            print(winner)
-            print(reward)
             history_stats['v'] = reward
+            history_stats['winner'] = winner
+            logging.debug('Finish: ')
+            logging.debug(winner)
+            logging.debug(reward)
+            logging.debug(game.board)
             # for i in range(10):
             #     print(game.history[i])
             break
@@ -46,13 +62,23 @@ def self_play(start_color=1):
         # an infinitesimal temperature is used, τ → 0
         if idx >= 30 and temp > 1e-3:
             temp /= 10.0
-    history_stats['board_history'].append(game.board)
+    # add the final board result
+    history_stats['board_history'].append(game.board.tolist())
+    history_stats['total_steps'] = idx
     return history_stats
 
-def multiprocessing_selfplay():
-    pool = mp.Pool() 
-    res = pool.map(self_play, range(10))
+def multiprocessing_selfplay(model):
+    logging.info('Start parallel self play')
+    pool = mp.Pool(10) 
+    res = pool.map(self_play, [model for model in range(10)])
+    logging.info('End parallel self play')
     print(res)
+    return res
 
 if __name__ == "__main__":
-    self_play()
+    model = DualResNet()
+    collection = Collection('beta', model.VERSION)
+    logging.info('Start selfplay')
+    game_stats = multiprocessing_selfplay(model)
+    collection.add_batch(game_stats)
+    logging.info('End self play')

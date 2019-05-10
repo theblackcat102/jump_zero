@@ -149,6 +149,14 @@ def generate_extractor_input(current_board, board_history, current_player ):
     return inputs
 
 
+@jit(nopython=True, parallel=True)
+def generate_mcts_softmax(probabilities, start_points, end_points, softmax_output = np.zeros((BOARD_WIDTH, BOARD_HEIGHT, BOARD_WIDTH, BOARD_HEIGHT))):
+    for idx in range(len(probabilities)):
+        s_x, s_y = start_points[idx]
+        e_x, e_y = end_points[idx]
+        softmax_output[ s_x ][s_y][e_x][e_y] = probabilities[idx]
+    return softmax_output
+
 if __name__ == "__main__":
     # test = [[ 1, 0, 0, 0, 0, 0, 0, 0], 
     #         [ 0, 1, 0, 0, 0, 0, 0,-1],
