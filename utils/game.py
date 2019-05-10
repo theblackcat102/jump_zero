@@ -19,7 +19,7 @@ class Game:
         self.player = player
         self.opponent = 1 if player == -1 else -1
         # 1(black) always start first
-        self.current = 1
+        self.current = player
         self.history = []
         self.player_step = 0
         self.availables = next_steps(self.board, player)
@@ -27,10 +27,12 @@ class Game:
 
     def update_state(self, board):
         self.history.append(self.board)
-        self.board = np.copy(board)
+        self.board = np.copy(board).astype('int')
         check_state = has_won(self.board, self.player_step, self.opponent_step)
-        self.player_step += 1
-        self.opponent_step += 1
+        if self.current == self.player_step:
+            self.player_step += 1
+        else:
+            self.opponent_step += 1
         self.current = 1 if self.current == -1 else -1
         end = False
         winner = None
@@ -41,12 +43,17 @@ class Game:
             reward = self.reward_function(winner)
         return end, winner, reward
     
-    def available_move(self, player): # player chess value
+    def available_move(self, player=None): # player chess value
         '''
             Output result for feature extractor
         '''
+        if player is None:
+            player = self.current
         possible_steps = next_steps(self.board, player)
-        return [generate_extractor_input(step, self.history+[self.board], self.current) for step in possible_steps ]
+        return [generate_extractor_input(step[0], self.history+[self.board], self.current) for step in possible_steps ]
+
+    def legal_move(self):
+        return next_steps(self.board, self.current)
 
     def reward_function(self, winner):
         if winner == self.player:
@@ -63,17 +70,30 @@ class Game:
 
     def generate_nn_input(self):
         inputs = np.zeros((INPLANE, BOARD_WIDTH, BOARD_HEIGHT, ))
-        if self.current_player() == 1:
+        if self.current == 1:
             inputs[-1, :, :] = np.ones((BOARD_WIDTH, BOARD_HEIGHT)).astype('float')
         inputs[0, :, :] = extract_chess(self.board, 1)
         inputs[HISTORY_RECORDS, :, :] = extract_chess(self.board, -1)
         for idx in range(min(HISTORY_RECORDS-1, len(self.history))):
-            inputs[idx+1, BOARD_WIDTH, :, :] = extract_chess(self.history[-1*idx], 1)
+            inputs[idx+1, :, :] = extract_chess(self.history[-1*idx], 1)
             inputs[idx+HISTORY_RECORDS+1, :, : ] = extract_chess(self.history[-1*idx], -1)
         return inputs
 
     def current_state(self):
         return self.generate_nn_input()
+    
+    def copy(self):
+        game = Game(self.player)
+        game.board = self.board
+        game.player = self.player
+        game.opponent = 1 if self.player == -1 else -1
+        # 1(black) always start first
+        game.current = self.current
+        game.history = self.history
+        game.player_step = self.player_step
+        game.availables = next_steps(game.board, self.player)
+        game.opponent_step = 0        
+        return game
 
 if __name__ == "__main__":
     game = Game()

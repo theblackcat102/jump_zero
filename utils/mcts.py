@@ -1,7 +1,8 @@
+import numpy
 import numpy as np
 from utils.rules import *
 from utils.game import init_board
-from utils.settings import BOARD_HEIGHT, BOARD_WIDTH, C_PUCT
+from utils.settings import BOARD_HEIGHT, BOARD_WIDTH, C_PUCT, PLAYOUT_ROUND
 
 def softmax(x):
     probs = np.exp(x - np.max(x))
@@ -27,7 +28,7 @@ class TreeNode(object):
         self._children = {}  # a map from action to TreeNode
         self._n_visits = 0
         self._depth = depth # steps taken since start of game
-        self.state = board
+        self.board = board
         self.player = player
         self._Q = 0
         self._u = 0
@@ -44,7 +45,10 @@ class TreeNode(object):
         for (board, prob) in actions:
             board_str = board.tostring()
             if board_str not in self._children:
-                self._children[board_str] = TreeNode(self, prob, opposite, np.copy(board))
+                self._children[board_str] = TreeNode(parent=self, 
+                    prior_p=prob,
+                    player=opposite, 
+                    board=np.copy(board), depth=self._depth+1)
         # expand all children that under this state
 
     def select(self, c_puct):
@@ -104,8 +108,8 @@ class TreeNode(object):
 
 class MCTS:
 
-    def __init__(self, policy_value_fn, c_puct=5, n_playout=400):
-        self._root = TreeNode(parent=None, prior_p=1.0, player=1, board=init_board)
+    def __init__(self, policy_value_fn, initial_player=1, c_puct=C_PUCT, n_playout=PLAYOUT_ROUND):
+        self._root = TreeNode(parent=None, prior_p=1.0, player=initial_player, board=init_board)
         self._c_puct = c_puct
         self._policy = policy_value_fn # output list of (move, prob), and envaluation value
         self._n_playout = n_playout
@@ -118,7 +122,7 @@ class MCTS:
         '''
         # 1. selection
         node = self._root
-        board = node.board
+        board = np.copy(node.board)
         # traverse until the leaf node
         end = False
         reward = 0
@@ -126,10 +130,12 @@ class MCTS:
             if node.is_leaf():
                 break
             # Greedily select next move.
-            board_str, node = node.select(self._c_puct)
-            board = np.fromstring(board_str).reshape((BOARD_WIDTH, BOARD_HEIGHT))
-            end, winner, reward = game.do_move(board)
-    
+            _, node = node.select(self._c_puct)
+            board = node.board
+            if board.shape != (BOARD_WIDTH, BOARD_HEIGHT):
+                raise ValueError('Invalid size inside node'+str( node.shape))
+            # update state
+            end, _, reward = game.update_state(board)
         if end:
             value = reward
         else:
@@ -137,38 +143,42 @@ class MCTS:
             node.expand(probability)
             value = prediction
 
+        # backpropagation
         node.update_recursive(-value) # why negative ?
 
     def get_move_visits(self, state, temperature=1e-3):
         '''
         Run all playouts sequentially and return the available actions and
         their corresponding visiting times.
-        state: the current game state
+        state: the current game instance
         '''
         # number of simulation to run
         for _ in range(self._n_playout):
             self._playout(state)
         visits = [ (node.board, node._n_visits) for _, node in self._root._children.items() ]
-        acts, _ = zip(*visits)
+        acts, visits = zip(*visits)
         act_probs = softmax(1.0/temperature * np.log(np.array(visits) + 1e-10))
+        # we will use save this for later
         return acts, act_probs
-    
+
     def update_with_move(self, new_move):
         """Step forward in the tree, keeping everything we already know
         about the subtree.
         """
         if isinstance(new_move, str) is False:
-            new_move = np.tostrinG(new_move)
+            new_move = new_move.tostring()
 
         if new_move in self._root._children:
             self._root = self._root._children[new_move]
             self._root._parent = None
         else:
+            print('reset')
             # maybe act as reset?
             self._root = TreeNode(None, 1.0, player=1, board=init_board)
 
 if __name__ == "__main__":
-    mcts = MCTS(None)
+    from models.dualresnet import DualResNet
+    from utils.game import Game
 
-    print(random_rollout(5))
 
+        
