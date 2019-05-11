@@ -7,15 +7,15 @@ C_PUCT = 4.0
 
 HISTORY_RECORDS = 3
 
-BLOCKS = 4 # number of residual block
+BLOCKS = 5 # number of residual block
 
 INPLANE = (HISTORY_RECORDS + 1)*2 + 1
 OUTPLANES = BOARD_WIDTH*BOARD_HEIGHT
 OUTPLANES_MAP = 10
 PARALLEL_SELF_PLAY = 88
-PLAYOUT_ROUND = 250
-
-SELF_TRAINING_ROUND = 400
+PLAYOUT_ROUND = 300
+# how many round to use for self training
+SELF_TRAINING_ROUND = 300
 
 LR = 0.01
 ## Number of MCTS simulation
@@ -29,7 +29,7 @@ MOMENTUM = 0.9
 ## Activate MCTS
 MCTS_FLAG = True
 ## Epsilon for Dirichlet noise
-EPS = 0.25
+EPS = 0.3
 ## Alpha for Dirichlet noise
 ALPHA = 0.03
 ## Batch size for evaluation during MCTS
@@ -38,7 +38,7 @@ BATCH_SIZE_EVAL = 2
 SELF_PLAY_MATCH = PARALLEL_SELF_PLAY
 ## Number of moves before changing temperature to stop
 ## exploration for more steps for large possible steps
-TEMPERATURE_MOVE = 30
+TEMPERATURE_MOVE = 50
 
 # storage
 IP= '192.168.0.103'

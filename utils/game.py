@@ -54,7 +54,7 @@ class Game:
         return [generate_extractor_input(step[0], self.history+[self.board], self.current) for step in possible_steps ]
 
     def legal_move(self):
-        return next_steps(self.board, self.current)
+        return next_steps(self.board.astype('int'), self.current)
 
     def reward_function(self, winner):
         if winner == self.player:

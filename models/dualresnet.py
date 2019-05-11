@@ -94,7 +94,7 @@ class PolicyNet(nn.Module):
         self.outplanes = outplanes
         self.conv = nn.Conv2d(inplanes, 1, kernel_size=1)
         self.bn = nn.BatchNorm2d(1)
-        self.logsoftmax = nn.LogSoftmax(dim=1)
+        self.softmax = nn.Softmax(dim=1)
         self.fc = nn.Linear(outplanes, outplanes*outplanes)
 
     def forward(self, x):
@@ -108,7 +108,7 @@ class PolicyNet(nn.Module):
         x = F.relu(self.bn(self.conv(x)))
         x = x.view(-1, self.outplanes )
         x = self.fc(x)
-        probas = self.logsoftmax(x).exp()
+        probas = self.softmax(x)
 
         return probas
 
@@ -166,7 +166,7 @@ class DualResNet(nn.Module):
         output, value_pred = self.forward(feature_input)
         probability = output.data.cpu().numpy()[0].reshape(BOARD_WIDTH, BOARD_HEIGHT, BOARD_WIDTH, BOARD_HEIGHT)
         prediction = value_pred.data.cpu().numpy()[0][0]
-        del output, value_pred
+        # del output, value_pred
         # we need to convert probability to a board(matrix) and probability(float)
 
         legal_moves = game.legal_move()
@@ -183,7 +183,7 @@ def alpha_loss(predict_softmax, mcts_softmax, predict_value, mcts_value):
         total_error = (value_error.view(-1) + policy_error).mean()
     '''
     value_loss = F.mse_loss(predict_value.view(-1), mcts_value)
-    policy_loss = -torch.mean(torch.sum(mcts_softmax*predict_softmax, 1))
+    policy_loss = -torch.mean(torch.sum(mcts_softmax*torch.log(predict_softmax), 1))
     loss = value_loss + policy_loss
     # backward and optimize
     return value_loss, policy_loss, loss

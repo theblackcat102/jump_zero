@@ -22,8 +22,11 @@ def extract_chess(board, piece_number):
 @jit
 def has_won(board, white_step, black_step):
     '''
-    8x8 matrix
     1 is black, -1 is white, 0 is empty
+    @params: 
+    white_step: how many white steps has taken, int
+    black_step: how many black steps has taken, int
+    board: 8x8 matrix
     '''
 
     board = board.astype('int')
@@ -87,7 +90,7 @@ def hop_board(board, origins, between, new, move=1, recursive_depth=1):
         board[between_x][between_y] = 0
     # put the final board matrix, chess initial position, new position
     possible_steps.append((np.copy(board), (origin_x, origin_y), new))
-    if recursive_depth > 50:
+    if recursive_depth > 99:
         return possible_steps
     # find next hop if available
     for offsets in [(1,0), (0,1), (-1, 0), (0, -1)]:
@@ -104,7 +107,7 @@ def hop_board(board, origins, between, new, move=1, recursive_depth=1):
             # check if theres any piece between hop point
             if board[points[0]][points[1]] != 0 and board[hop_point[0]][hop_point[1]] == 0:
                 possible_steps += hop_board(board, new, points, hop_point, move=move, recursive_depth=recursive_depth+1)
-    return possible_steps
+    return possible_steps # matrix
 
 @jit
 def next_steps(board, move=1):
@@ -116,7 +119,7 @@ def next_steps(board, move=1):
         raise ValueError('Board size is invalid, found shape '+ str(board.shape))
     for x in range(BOARD_WIDTH):
         for y in range(BOARD_HEIGHT):
-            if board[x][y] == move:
+            if int(board[x][y]) == move:
                 for offsets in [(1,0), (0,1), (-1, 0), (0, -1)]:
                     points = (x+offsets[0], y+offsets[1])
                     hop_point = (x+offsets[0]*2, y+offsets[1]*2)
@@ -131,10 +134,13 @@ def next_steps(board, move=1):
                             if board[hop_point[0]][hop_point[1]] == 0:
                                 # eat other points
                                 possible_steps += hop_board(np.copy(board), (x,y), points, (points[0] + offsets[0], points[1] + offsets[1]), move=move)
-    return possible_steps
+    return possible_steps  # list of  8x8 matrix
 
 @jit
 def generate_extractor_input(current_board, board_history, current_player ):
+    '''
+        Generate input for neural network, irrelevant to game play
+    '''
     inputs = np.zeros((BOARD_WIDTH, BOARD_HEIGHT, (HISTORY_RECORDS+1)*2 + 1))
     opposite = -1 if current_player == 1 else 1
     if current_player == 1:

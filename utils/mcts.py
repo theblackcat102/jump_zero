@@ -130,14 +130,15 @@ class MCTS:
         # traverse until the leaf node
         end = False
         reward = 0
+        depth = 0
         while True:
-            if node.is_leaf():
+            if node.is_leaf() or depth > 400:
                 break
             # Greedily select next move.
             _, node = node.select(self._c_puct)
-            board = node.board
             # update state
-            end, _, reward = game.update_state(board)
+            end, _, reward = game.update_state(np.copy(node.board))
+            depth += 1
 
         if end:
             value = reward
@@ -165,7 +166,7 @@ class MCTS:
             value = prediction
             # backpropagation
             self._root.update_recursive(-value)
-        visits = [ (node.board, node._n_visits, node.start, node.end) for _, node in self._root._children.items() ]
+        visits = [ (np.copy(node.board), node._n_visits, node.start, node.end) for _, node in self._root._children.items() ]
         acts, visits, starts, ends = zip(*visits)
 
         # convert visits 
@@ -184,6 +185,7 @@ class MCTS:
         if new_move in self._root._children:
             self._root = self._root._children[new_move]
             self._root._parent = None
+            self._root._depth = 0
         else:
             print('reset')
             # maybe act as reset?

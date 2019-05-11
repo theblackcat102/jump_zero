@@ -49,7 +49,7 @@ def train_selfplay(load_model=None, cpu = 10, round_limit=100,init_round=1, log_
     # shutil.rmtree(log_dir, ignore_errors=True)
     l2_const = L2_REG
     epochs = 1 # number of epoch training
-    batch_size = 256
+    batch_size = 128
     num_iter = 0
 
     device = torch.device('cuda' if torch.cuda.is_available() else 'cpu')
@@ -102,11 +102,11 @@ def train_selfplay(load_model=None, cpu = 10, round_limit=100,init_round=1, log_
                 t.set_description('Epoch %2d/%2d' % (epoch + 1, epochs))
                 for batch in dataloader:
                     feature = batch['input'].to(device, dtype=torch.float).permute(0, 3, 1, 2)
-                    softmax = batch['softmax'].to(device, dtype=torch.float)
+                    mcts_softmax = batch['softmax'].to(device, dtype=torch.float)
                     value = batch['value'].to(device, dtype=torch.float)
                     optimizer.zero_grad()
                     pred_softmax, pred_value = model(feature)
-                    value_loss, policy_loss, loss = alpha_loss(pred_softmax, softmax, pred_value, value)
+                    value_loss, policy_loss, loss = alpha_loss(pred_softmax, mcts_softmax, pred_value, value)
                     loss.backward()
                     optimizer.step()
                     t.update(1)
@@ -126,6 +126,7 @@ def train_selfplay(load_model=None, cpu = 10, round_limit=100,init_round=1, log_
 
 if __name__ == "__main__":
     logging.info('start training')
-    train_selfplay(load_model='DualResNet_0.pt', 
-        cpu=11, init_round=2, log_dir='./log/3rd_%s', 
-        skip_first=False)
+    # model_name = 'DualResNet_2.pt'
+    train_selfplay(load_model=None, 
+        cpu=11, init_round=2, log_dir='./log/v2_%s', 
+        skip_first=True)
