@@ -38,5 +38,4 @@ class Collection:
         for filename, _ in filenames:
             with open(filename, 'rb') as f:
                 game = pickle.load(f)
-                games.append(game)
-        return games
+                yield game

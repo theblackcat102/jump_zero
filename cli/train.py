@@ -6,7 +6,7 @@ import torch
 from models.dualresnet import DualResNet
 from utils.game import Game
 from utils.mcts import MCTS
-from utils.settings import EPS, ALPHA
+from utils.settings import EPS, ALPHA, TEMPERATURE_MOVE
 from utils.rules import has_won
 from utils.database import Collection
 
@@ -62,7 +62,7 @@ def single_self_play(process_rank, model, return_dict, start_color=1, n_playout=
             break
         idx += 1
         # an infinitesimal temperature is used, τ → 0
-        if idx >= 30 and temp > 1e-3:
+        if idx >= TEMPERATURE_MOVE and temp > 1e-3:
             temp /= 10.0
     # add the final board result
     history_stats['board_history'].append(game.board.tolist())
@@ -83,8 +83,11 @@ def multiprocessing_selfplay(model, cpu=5):
         p = Process(target=single_self_play, args=(rank, model, return_dict))
         p.start()
         processes.append(p)
-    for p in processes:
-        p.join()
+    try:
+        for p in processes:
+            p.join()
+    except:
+        logging.debug('failed process')
     return [ game for game in return_dict.values() ]
 
 if __name__ == "__main__":

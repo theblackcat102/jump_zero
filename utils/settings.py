@@ -12,9 +12,8 @@ BLOCKS = 4 # number of residual block
 INPLANE = (HISTORY_RECORDS + 1)*2 + 1
 OUTPLANES = BOARD_WIDTH*BOARD_HEIGHT
 OUTPLANES_MAP = 10
-PARALLEL_SELF_PLAY = 100
+PARALLEL_SELF_PLAY = 88
 PLAYOUT_ROUND = 250
-DEVICE = 'cpu'
 
 SELF_TRAINING_ROUND = 400
 
@@ -38,8 +37,8 @@ BATCH_SIZE_EVAL = 2
 ## Number of self-play before training
 SELF_PLAY_MATCH = PARALLEL_SELF_PLAY
 ## Number of moves before changing temperature to stop
-## exploration
-TEMPERATURE_MOVE = 5 
+## exploration for more steps for large possible steps
+TEMPERATURE_MOVE = 30
 
 # storage
 IP= '192.168.0.103'

@@ -70,7 +70,7 @@ if __name__ == "__main__":
             feature = batch['input'].to(device, dtype=torch.float).permute(0, 3, 1, 2)
             softmax = batch['softmax'].to(device, dtype=torch.float)
             value = batch['value'].to(device, dtype=torch.float)
-
+            model.train(); optimizer.zero_grad()
             pred_softmax, pred_value = model(feature)
             value_loss, policy_loss, loss = alpha_loss(pred_softmax, softmax, pred_value, value)
             # print('value: {}, loss {} \n'.format(value_loss, loss))
@@ -78,7 +78,6 @@ if __name__ == "__main__":
             t.set_postfix(categorical='%.4f' % policy_loss,
                         value='%.4f' % value_loss,
                         total='%.4f' % loss)
-            optimizer.zero_grad()
             loss.backward()
             optimizer.step()
 

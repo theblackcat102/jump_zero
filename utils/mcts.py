@@ -158,9 +158,13 @@ class MCTS:
         # number of simulation to run
         for _ in range(self._n_playout):
             self._playout(state.copy())
+
         if len(self._root._children) == 0:
-            for _ in range(self._n_playout):
-                self._playout(state.copy())
+            probability, prediction = self._policy(state.copy())
+            self._root.expand(probability)
+            value = prediction
+            # backpropagation
+            self._root.update_recursive(-value)
         visits = [ (node.board, node._n_visits, node.start, node.end) for _, node in self._root._children.items() ]
         acts, visits, starts, ends = zip(*visits)
 
