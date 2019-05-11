@@ -17,7 +17,7 @@ except RuntimeError:
     pass
 logging.basicConfig(format='%(asctime)s:%(message)s',level=logging.DEBUG)
 
-def self_play(process_rank, model, return_dict, start_color=1, n_playout=100):
+def single_self_play(process_rank, model, return_dict, start_color=1, n_playout=100):
     # player start at 
     history_stats = {
         'total_steps':0,
@@ -80,7 +80,7 @@ def multiprocessing_selfplay(model, cpu=5):
     model.share_memory()
     processes = []
     for rank in range(cpu):
-        p = Process(target=self_play, args=(rank, model, return_dict))
+        p = Process(target=single_self_play, args=(rank, model, return_dict))
         p.start()
         processes.append(p)
     for p in processes:
