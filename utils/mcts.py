@@ -45,7 +45,7 @@ class TreeNode(object):
         '''
         opposite = 1 if self.player == -1 else -1
         for (board, prob, start, end) in actions:
-            board_str = board.tostring()
+            board_str = hash(board.tostring())
             if board_str not in self._children:
                 self._children[board_str] = TreeNode(parent=self, 
                     prior_p=prob,
@@ -179,7 +179,9 @@ class MCTS:
         about the subtree.
         """
         if isinstance(new_move, str) is False:
-            new_move = new_move.tostring()
+            new_move = hash(new_move.tostring())
+        if isinstance(new_move, str):
+            new_move = hash(new_move)
 
         if new_move in self._root._children:
             self._root = self._root._children[new_move]

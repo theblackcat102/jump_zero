@@ -166,7 +166,7 @@ class DualResNet(nn.Module):
         output, value_pred = self.forward(feature_input)
         probability = output.data.cpu().numpy()[0].reshape(BOARD_WIDTH, BOARD_HEIGHT, BOARD_WIDTH, BOARD_HEIGHT)
         prediction = value_pred.data.cpu().numpy()[0][0]
-        # del output, value_pred
+        del output, value_pred
         # we need to convert probability to a board(matrix) and probability(float)
 
         legal_moves = game.legal_move()

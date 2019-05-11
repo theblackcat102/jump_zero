@@ -1,7 +1,3 @@
-from gevent import Timeout
-from gevent import monkey
-monkey.patch_all()
-
 import time
 import numpy as np
 from datetime import datetime
@@ -11,7 +7,7 @@ import torch
 from models.dualresnet import DualResNet
 from utils.game import Game
 from utils.mcts import MCTS
-from utils.settings import EPS, ALPHA, TEMPERATURE_MOVE, PROCESS_TIMEOUT
+from utils.settings import EPS, ALPHA, TEMPERATURE_MOVE, PROCESS_TIMEOUT, PLAYOUT_ROUND
 from utils.rules import has_won
 from utils.database import Collection
 
@@ -22,11 +18,9 @@ except RuntimeError:
     pass
 logging.basicConfig(format='%(asctime)s:%(message)s',level=logging.DEBUG)
 
-def single_self_play(process_rank, model, return_dict=None, start_color=1, n_playout=100):
+def single_self_play(process_rank, model, return_dict=None, start_color=1, n_playout=PLAYOUT_ROUND):
     # player start at 
-    timeout = Timeout(PROCESS_TIMEOUT) 
-    timeout.start()
-    
+    model.eval()
     history_stats = {
         'total_steps':0,
         'initial': start_color, 
@@ -36,7 +30,6 @@ def single_self_play(process_rank, model, return_dict=None, start_color=1, n_pla
         'time': datetime.now(),
         'board_history': [],
     }
-    collection = Collection('beta', model.VERSION)
     game = Game(player=start_color)
 
     mcts = MCTS(model.policyvalue_function, initial_player=start_color, n_playout=n_playout)
@@ -57,8 +50,8 @@ def single_self_play(process_rank, model, return_dict=None, start_color=1, n_pla
 
         end, winner, reward = game.update_state(step)
 
-        history_stats['board_history'].append(np.copy(game.board))
-        history_stats['mcts_softmax'].append(np.copy(mcts_softmax))
+        history_stats['board_history'].append(game.board)
+        history_stats['mcts_softmax'].append(mcts_softmax)
 
         mcts.update_with_move(step)
 
@@ -73,18 +66,16 @@ def single_self_play(process_rank, model, return_dict=None, start_color=1, n_pla
         if idx >= TEMPERATURE_MOVE and temp > 1e-3:
             temp /= 10.0
     # add the final board result
-    history_stats['board_history'].append(np.copy(game.board))
+    history_stats['board_history'].append(game.board)
     history_stats['total_steps'] = idx
     if return_dict:
         return_dict[process_rank] = history_stats
+    collection = Collection('beta', model.VERSION)
     collection.add_game(history_stats)
     return history_stats
 
 def multiprocessing_selfplay(model, cpu=5):
     logging.debug('Start parallel self play')
-    # pool = Pool(cpu)
-    # models = [ model for i in range(int(cpu*CPU_MULTIPLIER)) ]
-    # res = pool.map(self_play, models)
     processes = []
     for rank in range(cpu):
         p = Process(target=single_self_play, args=(rank, model, None))
