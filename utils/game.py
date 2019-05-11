@@ -10,7 +10,7 @@ init_board = np.array([[ 1, 0, 0, 0, 0, 0, 0, 0],
                 [ 0, 1, 0, 0, 0,-1, 0,-1],
                 [ 1, 0, 0, 0, 0, 0,-1, 0],
                 [ 0, 0, 0, 0, 0, 0, 0,-1], ])
-
+STORE_HISTORY = (HISTORY_RECORDS+1)*2
 class Game:
 
     def __init__(self, player=1):
@@ -27,12 +27,15 @@ class Game:
 
     def update_state(self, board):
         self.history.append(self.board)
+        self.history = self.history[-STORE_HISTORY:]
         self.board = np.copy(board).astype('int')
-        check_state = has_won(self.board, self.player_step, self.opponent_step)
+
         if self.current == self.player_step:
             self.player_step += 1
         else:
             self.opponent_step += 1
+
+        check_state = has_won(self.board, self.player_step, self.opponent_step)
         # switch side
         self.current = 1 if self.current == -1 else -1
         end = False

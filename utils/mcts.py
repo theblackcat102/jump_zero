@@ -126,7 +126,6 @@ class MCTS:
         '''
         # 1. selection
         node = self._root
-        board = np.copy(node.board)
         # traverse until the leaf node
         end = False
         reward = 0

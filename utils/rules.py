@@ -144,7 +144,7 @@ def generate_extractor_input(current_board, board_history, current_player ):
     inputs = np.zeros((BOARD_WIDTH, BOARD_HEIGHT, (HISTORY_RECORDS+1)*2 + 1))
     opposite = -1 if current_player == 1 else 1
     if current_player == 1:
-        inputs[:, :, -1] = np.ones((BOARD_WIDTH, BOARD_HEIGHT)).astype('float')
+        inputs[:, :, (HISTORY_RECORDS+1)*2] = np.ones((BOARD_WIDTH, BOARD_HEIGHT))
     output = extract_chess(current_board, current_player)
     inputs[:, :, 0] = output
     inputs[:, :, HISTORY_RECORDS+1] = extract_chess(current_board, opposite)

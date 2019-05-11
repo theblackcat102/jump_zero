@@ -5,14 +5,15 @@ BOARD_HEIGHT = 8
 
 C_PUCT = 4.0
 
-HISTORY_RECORDS = 3
+HISTORY_RECORDS = 4
 
-BLOCKS = 5 # number of residual block
+BLOCKS = 6 # number of residual block
 
 INPLANE = (HISTORY_RECORDS + 1)*2 + 1
 OUTPLANES = BOARD_WIDTH*BOARD_HEIGHT
-OUTPLANES_MAP = 10
-PARALLEL_SELF_PLAY = 88
+
+OUTPLANES_MAP = 256 # kernel number
+PARALLEL_SELF_PLAY = 104
 PLAYOUT_ROUND = 300
 # how many round to use for self training
 SELF_TRAINING_ROUND = 300
@@ -38,9 +39,10 @@ BATCH_SIZE_EVAL = 2
 SELF_PLAY_MATCH = PARALLEL_SELF_PLAY
 ## Number of moves before changing temperature to stop
 ## exploration for more steps for large possible steps
-TEMPERATURE_MOVE = 50
+TEMPERATURE_MOVE = 30
 
 # storage
 IP= '192.168.0.103'
 
 MODEL_DIR = './checkpoint'
+PROCESS_TIMEOUT = 600

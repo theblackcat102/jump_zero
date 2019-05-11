@@ -60,11 +60,11 @@ if __name__ == "__main__":
                                     weight_decay=l2_const)
 
     x_dataloader = torch.utils.data.DataLoader(
-        dataset=GameDataset('beta', DualResNet.VERSION, training_round=200),
-        batch_size=128, shuffle=True, drop_last=True)
+        dataset=GameDataset('beta', DualResNet.VERSION, training_round=20),
+        batch_size=8, shuffle=True, drop_last=True)
     epochs = 1
     epoch=0
-    with tqdm(total=len(x_dataloader)//128, ncols=150) as t:
+    with tqdm(total=len(x_dataloader)//8, ncols=150) as t:
         t.set_description('Epoch %2d/%2d' % (epoch + 1, epochs))
         for batch in tqdm(x_dataloader, total=len(x_dataloader)//128):
             feature = batch['input'].to(device, dtype=torch.float).permute(0, 3, 1, 2)

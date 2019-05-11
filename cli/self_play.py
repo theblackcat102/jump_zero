@@ -1,3 +1,6 @@
+from gevent import monkey
+monkey.patch_all()
+
 import os, sys
 import numpy as np
 from datetime import datetime
@@ -18,14 +21,13 @@ from utils.settings import (
 from utils.rules import has_won
 from utils.database import Collection
 from models.dataloader import GameDataset
-from cli.train import single_self_play, multiprocessing_selfplay
+from cli.train import single_self_play, multiprocessing_selfplay, pool_selfplay
 # os.makedirs(MODEL_DIR, safe=True)
 try:
     set_start_method('spawn',force=True)
 except RuntimeError:
     print('faild to spawn mode')
     pass
-
 
 logging.basicConfig(format='%(asctime)s:%(message)s',level=logging.DEBUG)
 
@@ -49,7 +51,7 @@ def train_selfplay(load_model=None, cpu = 10, round_limit=100,init_round=1, log_
     # shutil.rmtree(log_dir, ignore_errors=True)
     l2_const = L2_REG
     epochs = 1 # number of epoch training
-    batch_size = 128
+    batch_size = 64
     num_iter = 0
 
     device = torch.device('cuda' if torch.cuda.is_available() else 'cpu')
@@ -72,7 +74,7 @@ def train_selfplay(load_model=None, cpu = 10, round_limit=100,init_round=1, log_
         round_count = checkpoint['round']
 
     logging.info('Start self play')
-    collection = Collection('beta', model.VERSION)
+    # collection = Collection('beta', model.VERSION)
 
     while True:
         '''
@@ -85,9 +87,9 @@ def train_selfplay(load_model=None, cpu = 10, round_limit=100,init_round=1, log_
             logging.info('Skipping first round, straight into backprop')
         else:
             parallel_iter = PARALLEL_SELF_PLAY//int(cpu)
-            for iter in tqdm(range(parallel_iter), total=parallel_iter):
-                game_stats = multiprocessing_selfplay(model, cpu)
-                result = collection.add_batch(game_stats)
+            for _ in tqdm(range(parallel_iter), total=parallel_iter):
+                multiprocessing_selfplay(model, cpu)
+                # _ = collection.add_batch(game_stats)
         '''
             Backpropagation using self play MCTS
         '''
@@ -119,7 +121,7 @@ def train_selfplay(load_model=None, cpu = 10, round_limit=100,init_round=1, log_
                     writer.add_scalar('total_loss', loss, num_iter)
         del dataloader # remove data loader to reduce memory
         # print('Saving model...')
-        save(model, optimizer, round_count, 'DualResNet_{}.pt'.format(round_count))
+        save(model, optimizer, round_count, 'DualResNetv2_{}.pt'.format(round_count))
         round_count += 1
         if round_count > round_limit:
             break
@@ -128,5 +130,5 @@ if __name__ == "__main__":
     logging.info('start training')
     # model_name = 'DualResNet_2.pt'
     train_selfplay(load_model=None, 
-        cpu=11, init_round=2, log_dir='./log/v2_%s', 
-        skip_first=True)
+        cpu=13, init_round=2, log_dir='./log/v3_%s', 
+        skip_first=False)

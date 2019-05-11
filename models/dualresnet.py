@@ -144,7 +144,7 @@ class ValueNet(nn.Module):
         return winning
 
 class DualResNet(nn.Module):
-    VERSION = 'v1.01'
+    VERSION = 'v1.02'
     def __init__(self, input_place=INPLANE, extractor_output=OUTPLANES_MAP,outputplane=OUTPLANES):
         super(DualResNet, self).__init__()
         self.extractor = Extractor(input_place, extractor_output)
