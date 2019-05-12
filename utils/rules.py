@@ -2,12 +2,23 @@ from numba import jit
 import numpy as np
 from utils.settings import BOARD_WIDTH, BOARD_HEIGHT, HISTORY_RECORDS
 
-@jit(nopython=True)
-def point_within_boundary(points):
+@jit
+def check_boundary(points):
     x, y = points
-    if x >= 0 and y >= 0 and x < BOARD_HEIGHT and y < BOARD_WIDTH:
+    if 0 <= x < BOARD_HEIGHT and 0 <= y < BOARD_WIDTH:
         return True
     return False
+
+
+@jit
+def point_within_boundary(origin, points, board, move):
+    if check_boundary(points) and board[points[0]][points[1]] == 0:
+        # move points
+        new_board = np.copy(board)
+        new_board[origin[0], origin[1]] = 0
+        new_board[points[0]][points[1]] = move
+        return [(new_board, origin, points)]
+    return []
 
 @jit
 def extract_chess(board, piece_number):
@@ -68,73 +79,61 @@ def is_move_valid(board, x, y):
         return True
 
 @jit
-def hop_board(board, origins, between, new, move=1, recursive_depth=1):
-
-    opposite = 1 if move == -1 else -1
-    x, y = new
-
-    origin_x, origin_y = origins
-    between_x, between_y = between
-
-    if board[between_x][between_y] == 0:
+def hop_board(origin, condition_points, points_to_move, board, move, hop_depth, direction, visited):
+    if visited.get(points_to_move):
+        return []
+    # check hop limit
+    if hop_depth == 99:
+        return []
+    # check if boundary satisfied
+    if not check_boundary(condition_points) or not check_boundary(points_to_move):
+        return []
+    # check if condition points satisfied:
+    if board[condition_points[0], condition_points[1]] != -1 and board[condition_points[0], condition_points[1]] != 1:
         return []
 
-    possible_steps = []
-    # set original point to zero
-    board[origin_x][origin_y] = 0
-    # set new hop point to the move
-    board[x][y] = move
+    ans = []
+    opposite = 1 if move == -1 else - 1
 
-    if board[between_x][between_y] == opposite:
-        # if there's opposite in between remove it
-        board[between_x][between_y] = 0
-    # put the final board matrix, chess initial position, new position
-    possible_steps.append((np.copy(board), (origin_x, origin_y), new))
-    if recursive_depth > 99:
-        return possible_steps
-    # find next hop if available
-    for offsets in [(1,0), (0,1), (-1, 0), (0, -1)]:
-        points = (x+offsets[0], y+offsets[1])
-        hop_point = (x+offsets[0]*2, y+offsets[1]*2)
-        if point_within_boundary(points) is False or point_within_boundary(hop_point) is False:
-            continue
-        
-        # skip if neighbour is unpopulated
-        if board[points[0]][points[1]] == 0:
-            continue
-        # hop point is within boundaries and hop point is not the original point
-        if (hop_point[0] != origin_x and hop_point[1] != origin_y):
-            # check if theres any piece between hop point
-            if board[points[0]][points[1]] != 0 and board[hop_point[0]][hop_point[1]] == 0:
-                possible_steps += hop_board(board, new, points, hop_point, move=move, recursive_depth=recursive_depth+1)
-    return possible_steps # matrix
+    new_board = np.copy(board)
+    new_board[origin[0], origin[1]] = 0
+    new_board[points_to_move[0], points_to_move[1]] = move
+    if new_board[condition_points[0], condition_points[1]] == opposite:
+        new_board[condition_points[0], condition_points[1]] = 0
+    if direction != 'N':
+        ans.extend([(new_board, origin, points_to_move)])
+    visited[condition_points] = True
+
+    ans.extend(hop_board(points_to_move, (points_to_move[0] - 1, points_to_move[1]),
+                         (points_to_move[0] - 2, points_to_move[1]), new_board, move, hop_depth + 1, 'L', visited))
+    ans.extend(hop_board(points_to_move, (points_to_move[0] + 1, points_to_move[1]),
+                         (points_to_move[0] + 2, points_to_move[1]), new_board, move, hop_depth + 1, 'R', visited))
+    ans.extend(hop_board(points_to_move, (points_to_move[0], points_to_move[1] - 1),
+                         (points_to_move[0], points_to_move[1] - 2), new_board, move, hop_depth + 1, 'D', visited))
+    ans.extend(hop_board(points_to_move, (points_to_move[0], points_to_move[1] + 1),
+                         (points_to_move[0], points_to_move[1] + 2), new_board, move, hop_depth + 1, 'U', visited))
+
+    return ans
 
 @jit
 def next_steps(board, move=1):
     '''
         params: move =1 or -1
     '''
-    possible_steps = []
+    possible_step = []
     if board.shape != (BOARD_WIDTH, BOARD_HEIGHT):
         raise ValueError('Board size is invalid, found shape '+ str(board.shape))
     for x in range(BOARD_WIDTH):
         for y in range(BOARD_HEIGHT):
             if int(board[x][y]) == move:
-                for offsets in [(1,0), (0,1), (-1, 0), (0, -1)]:
-                    points = (x+offsets[0], y+offsets[1])
-                    hop_point = (x+offsets[0]*2, y+offsets[1]*2)
-                    if point_within_boundary(points):
-                        if board[points[0]][points[1]] == 0:
-                            # move points
-                            new_board = np.copy(board)
-                            new_board[x][y] = 0
-                            new_board[points[0]][points[1]] = move
-                            possible_steps.append( (new_board, (x,y), points ) )
-                        elif (board[points[0]][points[1]] != 0) and point_within_boundary(hop_point):
-                            if board[hop_point[0]][hop_point[1]] == 0:
-                                # eat other points
-                                possible_steps += hop_board(np.copy(board), (x,y), points, (points[0] + offsets[0], points[1] + offsets[1]), move=move)
-    return possible_steps  # list of  8x8 matrix
+                # check hop step (R, L, U, D)
+                possible_step.extend(hop_board((x, y), (x, y), (x, y), board, move, 1, 'N', {}))
+                # check basic four step (R, L, U, D)
+                possible_step.extend(point_within_boundary((x, y), (x + 1, y), board, move))  # right
+                possible_step.extend(point_within_boundary((x, y), (x - 1, y), board, move))  # left
+                possible_step.extend(point_within_boundary((x, y), (x, y + 1), board, move))  # up
+                possible_step.extend(point_within_boundary((x, y), (x, y - 1), board, move))  # down
+    return possible_step  # list of  8x8 matrix
 
 @jit
 def generate_extractor_input(current_board, board_history, current_player ):
