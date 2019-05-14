@@ -13,11 +13,13 @@ INPLANE = (HISTORY_RECORDS + 1)*2 + 1
 OUTPLANES = BOARD_WIDTH*BOARD_HEIGHT
 
 OUTPLANES_MAP = 256 # kernel number
-PARALLEL_SELF_PLAY = 100
+# number of self play round to carry before backprop neural network
+PARALLEL_SELF_PLAY = 100 
+# mcts playout round
 PLAYOUT_ROUND = 200
-# how many round to use for self training
+# how many latest rounds used for training
 SELF_TRAINING_ROUND = 300
-
+# fixed learning rate
 LR = 0.01
 ## Number of MCTS simulation
 MCTS_SIM = 64

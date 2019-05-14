@@ -23,12 +23,11 @@ class TreeNode(object):
     prior probability P, and its visit-count-adjusted prior score u.
     '''
 
-    def __init__(self, parent, prior_p, player, board, start=None, end=None, depth=0):
+    def __init__(self, parent, prior_p, player, start=None, end=None, depth=0):
         self._parent = parent
         self._children = {}  # a map from action to TreeNode
         self._n_visits = 0
         self._depth = depth # steps taken since start of game
-        self.board = board
         self.player = player
         self.start = start
         self.end = end
@@ -45,14 +44,14 @@ class TreeNode(object):
         '''
         opposite = 1 if self.player == -1 else -1
         for (board, prob, start, end) in actions:
-            board_str = hash(board.tostring())
+            board_str = board.tostring()
             if board_str not in self._children:
                 self._children[board_str] = TreeNode(parent=self, 
                     prior_p=prob,
                     player=opposite, 
                     start=start,
                     end=end,
-                    board=np.copy(board), depth=self._depth+1)
+                    depth=self._depth+1)
         # expand all children that under this state
 
     def select(self, c_puct):
@@ -113,7 +112,7 @@ class TreeNode(object):
 class MCTS:
 
     def __init__(self, policy_value_fn, initial_player=1, c_puct=C_PUCT, n_playout=PLAYOUT_ROUND):
-        self._root = TreeNode(parent=None, prior_p=1.0, player=initial_player, board=init_board, start=(0, 0), end=(0, 0) )
+        self._root = TreeNode(parent=None, prior_p=1.0, player=initial_player, start=(0, 0), end=(0, 0) )
         self._c_puct = c_puct
         self._policy = policy_value_fn # output list of (move, prob), and envaluation value
         self._n_playout = n_playout
@@ -134,9 +133,10 @@ class MCTS:
             if node.is_leaf() or depth > 400:
                 break
             # Greedily select next move.
-            _, node = node.select(self._c_puct)
+            node_key, node = node.select(self._c_puct)
             # update state
-            end, _, reward = game.update_state(np.copy(node.board))
+            board = np.fromstring(node_key, dtype=int).reshape(BOARD_WIDTH, BOARD_HEIGHT)
+            end, _, reward = game.update_state(board)
             depth += 1
 
         if end:
@@ -165,7 +165,9 @@ class MCTS:
             value = prediction
             # backpropagation
             self._root.update_recursive(-value)
-        visits = [ (np.copy(node.board), node._n_visits, node.start, node.end) for _, node in self._root._children.items() ]
+        visits = []
+        for node_key, node in self._root._children.items():
+            visits.append((np.fromstring(node_key, dtype=int).reshape(BOARD_WIDTH, BOARD_HEIGHT), node._n_visits, node.start, node.end))
         acts, visits, starts, ends = zip(*visits)
 
         # convert visits 
@@ -179,9 +181,7 @@ class MCTS:
         about the subtree.
         """
         if isinstance(new_move, str) is False:
-            new_move = hash(new_move.tostring())
-        if isinstance(new_move, str):
-            new_move = hash(new_move)
+            new_move = new_move.tostring()
 
         if new_move in self._root._children:
             self._root = self._root._children[new_move]

@@ -119,8 +119,8 @@ def train_selfplay(load_model=None, cpu = 10, round_limit=100,init_round=1, log_
         else:
             parallel_iter = PARALLEL_SELF_PLAY//int(cpu)
             for _ in tqdm(range(parallel_iter), total=parallel_iter):
-                single_self_play(1, model)
-                # multiprocessing_selfplay(model, cpu)
+                # single_self_play(1, model)
+                multiprocessing_selfplay(model, cpu)
                 # _ = collection.add_batch(game_stats)
         '''
             Backpropagation using self play MCTS
@@ -134,5 +134,5 @@ if __name__ == "__main__":
     logging.info('start training')
     # model_name = 'DualResNet_2.pt'
     train_selfplay(load_model=None, 
-        cpu=12, init_round=2, log_dir='./log/v3_%s', 
-        skip_first=False)
+        cpu=12, init_round=0, log_dir='./log/v3_%s', 
+        skip_first=True)
