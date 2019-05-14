@@ -23,12 +23,10 @@ class TreeNode(object):
     prior probability P, and its visit-count-adjusted prior score u.
     '''
 
-    def __init__(self, parent, prior_p, player, start=None, end=None, depth=0):
+    def __init__(self, parent, prior_p, start=None, end=None):
         self._parent = parent
         self._children = {}  # a map from action to TreeNode
         self._n_visits = 0
-        self._depth = depth # steps taken since start of game
-        self.player = player
         self.start = start
         self.end = end
         self._Q = 0
@@ -42,16 +40,13 @@ class TreeNode(object):
         action_priors: a list of tuples of actions and their prior probability
         according to the policy function.
         '''
-        opposite = 1 if self.player == -1 else -1
         for (board, prob, start, end) in actions:
             board_str = board.tostring()
             if board_str not in self._children:
                 self._children[board_str] = TreeNode(parent=self, 
                     prior_p=prob,
-                    player=opposite, 
                     start=start,
-                    end=end,
-                    depth=self._depth+1)
+                    end=end)
         # expand all children that under this state
 
     def select(self, c_puct):
@@ -103,19 +98,17 @@ class TreeNode(object):
         return len(self._children) == 0
 
     def is_root(self):
-        '''
-        check if it's root node
-        '''
         return self._parent is None
 
 
 class MCTS:
 
-    def __init__(self, policy_value_fn, initial_player=1, c_puct=C_PUCT, n_playout=PLAYOUT_ROUND):
-        self._root = TreeNode(parent=None, prior_p=1.0, player=initial_player, start=(0, 0), end=(0, 0) )
+    def __init__(self, policy_value_fn, initial_player=1, c_puct=C_PUCT, n_playout=PLAYOUT_ROUND, self_play=True):
+        self._root = TreeNode(parent=None, prior_p=1.0, start=(0, 0), end=(0, 0) )
         self._c_puct = c_puct
         self._policy = policy_value_fn # output list of (move, prob), and envaluation value
         self._n_playout = n_playout
+        self._self_play = self_play
 
     def _playout(self, game):
         '''
@@ -145,7 +138,7 @@ class MCTS:
             probability, prediction = self._policy(game)
             node.expand(probability)
             value = prediction
-
+        del game
         # backpropagation
         node.update_recursive(-value) # why negative ?
 
@@ -172,9 +165,23 @@ class MCTS:
 
         # convert visits 
 
-        act_probs = softmax(1.0/temperature * np.log( (np.array(visits)/np.sum(visits)) + 1e-10))
+        act_probs = softmax(1.0/temperature * np.log(np.array(visits) + 1e-10))
         # we will use save this for later
         return acts, act_probs, generate_mcts_softmax(act_probs, starts, ends).flatten()
+
+    def get_action(self, game, temp=1e-3, return_prob=0):
+        acts, probability, mcts_softmax = mcts.get_move_visits(game.copy(), temperature=temp)
+        # pick a random move
+        valid_move_count = len(probability)
+        if self._self_play:
+            move_idx = np.random.choice(valid_move_count, 
+                p=(1-EPS)*probability + EPS*np.random.dirichlet(ALPHA*np.ones(valid_move_count))
+            )
+        else:
+            move_idx = np.random.choice(valid_move_count, probability)
+        step = acts[move_idx]
+        return step, 
+
 
     def update_with_move(self, new_move):
         """Step forward in the tree, keeping everything we already know
@@ -186,11 +193,10 @@ class MCTS:
         if new_move in self._root._children:
             self._root = self._root._children[new_move]
             self._root._parent = None
-            self._root._depth = 0
         else:
             print('reset')
             # maybe act as reset?
-            self._root = TreeNode(None, 1.0, player=1, board=init_board)
+            self._root = TreeNode(None, 1.0)
 
 if __name__ == "__main__":
     from models.dualresnet import DualResNet

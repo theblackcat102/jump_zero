@@ -4,6 +4,7 @@ from datetime import datetime
 from torch.multiprocessing import Pool, Process, set_start_method, Manager
 import logging
 import torch
+from tqdm import tqdm
 from models.dualresnet import DualResNet
 from utils.game import Game
 from utils.mcts import MCTS
@@ -72,7 +73,7 @@ def single_self_play(process_rank, model, return_dict=None, start_color=1, n_pla
         return_dict[process_rank] = history_stats
     collection = Collection('beta', model.VERSION)
     collection.add_game(history_stats)
-    return history_stats
+
 
 def multiprocessing_selfplay(model, cpu=5):
     logging.debug('Start parallel self play')
@@ -91,15 +92,18 @@ def kill_process(pool):
     time.sleep( 600 )
     pool.terminate()
 
-def pool_selfplay(model, cpu=5):
-    logging.debug('Start parallel self play')
+def pool_selfplay(model, cpu=5, rounds=100):
+    # logging.debug('Start parallel self play')
     pool = Pool(processes=cpu)
-    multi_res = [pool.apply_async(single_self_play, (i, model, None)) for i in range(int(cpu*1.2))]
-    result = [ res.get() for res in multi_res ]
-    if len(result) == 0:
-        logging.warning('No result returned')
-
-    return result
+    processes = []
+    for i in range(rounds):
+        res = pool.apply_async(single_self_play, (i, model, None))
+        processes.append(res)
+    for proc in tqdm(processes, total=rounds):
+        proc.wait(timeout=1200)
+        time.sleep(3)
+    pool.close()
+    pool.join()
 
 if __name__ == "__main__":
     model = DualResNet()
@@ -107,8 +111,8 @@ if __name__ == "__main__":
     model = model.to(device)
     collection = Collection('beta', model.VERSION)
     logging.info('Start selfplay')
-    multiprocessing_selfplay(model, cpu=5)
+    # multiprocessing_selfplay(model, cpu=5)
     # return_dict = {}
-    # game_stat = self_play(1, model, return_dict)
+    game_stat = single_self_play(1, model, None)
     # collection.add_batch(return_dict.values())
     logging.info('End self play')
