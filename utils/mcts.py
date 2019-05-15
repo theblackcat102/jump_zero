@@ -22,6 +22,7 @@ class TreeNode(object):
     A node in the MCTS tree. Each node keeps track of its own value Q,
     prior probability P, and its visit-count-adjusted prior score u.
     '''
+    __slots__ = ('_parent', '_children', '_n_visits', 'start', 'end', '_Q', '_u', '_P')
 
     def __init__(self, parent, prior_p, start=None, end=None):
         self._parent = parent

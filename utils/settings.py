@@ -5,20 +5,20 @@ BOARD_HEIGHT = 8
 
 C_PUCT = 4.0
 
-HISTORY_RECORDS = 4
+HISTORY_RECORDS = 3
 
-BLOCKS = 6 # number of residual block
+BLOCKS = 4 # number of residual block
 
 INPLANE = (HISTORY_RECORDS + 1)*2 + 1
 OUTPLANES = BOARD_WIDTH*BOARD_HEIGHT
 
-OUTPLANES_MAP = 256 # kernel number
+OUTPLANES_MAP = 64 # kernel number
 # number of self play round to carry before backprop neural network
-PARALLEL_SELF_PLAY = 100 
+PARALLEL_SELF_PLAY = 100
 # mcts playout round
-PLAYOUT_ROUND = 200
+PLAYOUT_ROUND = 400
 # how many latest rounds used for training
-SELF_TRAINING_ROUND = 300
+SELF_TRAINING_ROUND = 400
 # fixed learning rate
 LR = 0.01
 ## Number of MCTS simulation

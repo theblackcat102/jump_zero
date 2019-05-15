@@ -39,8 +39,8 @@ class Game:
         # switch side
         self.current = 1 if self.current == -1 else -1
         end = False
-        winner = None
-        reward = -1
+        winner = check_state
+        reward = 0
         if check_state != 0:
             end = True
             winner = check_state # -1 is white, 1 is black

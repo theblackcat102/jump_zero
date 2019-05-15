@@ -150,6 +150,7 @@ class DualResNet(nn.Module):
         self.extractor = Extractor(input_place, extractor_output)
         self.policy_model = PolicyNet( extractor_output, outputplane )
         self.value_model = ValueNet(extractor_output, outputplane )
+        self.device = None
 
     def forward(self, x):
         feature = self.extractor(x)
@@ -159,14 +160,15 @@ class DualResNet(nn.Module):
 
     def policyvalue_function(self, game):
         feature_input = np.array([game.current_state()])
+        if self.device is None:
+            self.device = next(self.parameters()).device
 
-        device = torch.device('cuda' if torch.cuda.is_available() else 'cpu')
-        feature_input = torch.from_numpy(feature_input).type('torch.FloatTensor').to(device)
+        feature_input = torch.from_numpy(feature_input).type('torch.FloatTensor').to(self.device)
 
-        output, value_pred = self.forward(feature_input)
+        output, value_pred = self.forward(Variable(feature_input))
         probability = output.data.cpu().numpy()[0].reshape(BOARD_WIDTH, BOARD_HEIGHT, BOARD_WIDTH, BOARD_HEIGHT)
         prediction = value_pred.data.cpu().numpy()[0][0]
-        del output, value_pred
+        del output, value_pred, feature_input
         # we need to convert probability to a board(matrix) and probability(float)
 
         legal_moves = game.legal_move()

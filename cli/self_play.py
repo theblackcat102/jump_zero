@@ -20,6 +20,7 @@ from utils.database import Collection
 from models.dataloader import GameDataset
 from cli.train import single_self_play, multiprocessing_selfplay, pool_selfplay
 # os.makedirs(MODEL_DIR, safe=True)
+
 try:
     set_start_method('spawn',force=True)
 except RuntimeError:
@@ -36,14 +37,21 @@ def save(model, optimizer, round_count, model_name):
         'round': round_count}, 
         os.path.join(MODEL_DIR, model_name))
 
+def clean_gpu_cache():
+    num_gpus = torch.cuda.device_count()
+    for gpu_id in range(num_gpus):
+        torch.cuda.set_device(gpu_id)
+        torch.cuda.empty_cache()
 
 def train_model(model, optimizer, round_count, num_iter, writer, epochs=1, batch_size=128):
+
     device = torch.device('cuda' if torch.cuda.is_available() else 'cpu')
     dataloader = torch.utils.data.DataLoader(
         GameDataset('beta', model.VERSION, training_round=SELF_TRAINING_ROUND),
         batch_size=batch_size, shuffle=True)
     loss = {}
     batch_num = len(dataloader) // batch_size
+    model = model.cuda()
     model.train()
     for epoch in range(epochs):
         with tqdm(total=batch_num, ncols=150) as t:
@@ -66,12 +74,25 @@ def train_model(model, optimizer, round_count, num_iter, writer, epochs=1, batch
                 writer.add_scalar('categorical_loss', policy_loss, num_iter)
                 writer.add_scalar('value_loss', value_loss, num_iter)
                 writer.add_scalar('total_loss', loss, num_iter)
-    del dataloader # remove data loader to reduce memory
     # print('Saving model...')
     save(model, optimizer, round_count, 'DualResNetv2_{}.pt'.format(round_count))
+    clean_gpu_cache()
     return model, optimizer, num_iter
 
-def train_selfplay(load_model=None, cpu = 10, round_limit=100,init_round=1, log_dir='./log/%s', skip_first=True):
+# train_pool = Pool()
+
+if __name__ == "__main__":
+    logging.info('start training')
+    # model_name = 'DualResNet_2.pt'
+    # train_selfplay(load_model=None, 
+    #     cpu=10, init_round=0, log_dir='./log/v3_%s', 
+    #     skip_first=False)
+    cpu = 12
+    init_round = 1
+    log_dir='./log/v3.1_%s'
+    load_model = 'DualResNetv2_0.pt'
+    round_limit = 1000
+    skip_first = False
     '''
         load_model: model name to load in string
         cpu: total multiprocessing core to use
@@ -94,6 +115,7 @@ def train_selfplay(load_model=None, cpu = 10, round_limit=100,init_round=1, log_
     writer = SummaryWriter(log_dir=log_dir % name)
     model = DualResNet()
     model = model.to(device)
+    model = model.share_memory()
     optimizer = optim.Adam(model.parameters(), lr=LR,
                                     weight_decay=l2_const)
 
@@ -103,7 +125,7 @@ def train_selfplay(load_model=None, cpu = 10, round_limit=100,init_round=1, log_
         checkpoint = torch.load(os.path.join(MODEL_DIR, load_model))
         model.load_state_dict(checkpoint['network'])
         optimizer.load_state_dict(checkpoint['optimizer'])
-        round_count = checkpoint['round']
+        round_count = checkpoint['round']+1
 
     logging.info('Start self play')
     # collection = Collection('beta', model.VERSION)
@@ -126,14 +148,10 @@ def train_selfplay(load_model=None, cpu = 10, round_limit=100,init_round=1, log_
         '''
             Backpropagation using self play MCTS
         '''
+
+        # res = train_pool.apply_async(train_model, (model, optimizer, round_count, num_iter, writer, batch_size,))
+        # model, optimizer, num_iter = res.get()
         model, optimizer, num_iter = train_model(model, optimizer, round_count, num_iter, writer, batch_size=batch_size)
         round_count += 1
         if round_count > round_limit:
             break
-
-if __name__ == "__main__":
-    logging.info('start training')
-    # model_name = 'DualResNet_2.pt'
-    train_selfplay(load_model=None, 
-        cpu=12, init_round=0, log_dir='./log/v3_%s', 
-        skip_first=False)
