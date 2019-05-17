@@ -140,8 +140,6 @@ class DualResNetNumpy():
             param_type = keys[-1]
             # print(name)
             weight = weight.data.numpy()
-
-
             if level == 'extractor':
                 if module != layer_type:
                     module_int = int(module[-1])
@@ -263,13 +261,16 @@ class DualResNetNumpy():
 if __name__ == "__main__":
     import torch, os
     from tqdm import tqdm
+    # os.environ['OPENBLAS_NUM_THREADS'] = '1'
+    # os.environ['MKL_NUM_THREADS'] = '1'
     MODEL_DIR = './checkpoint'
     checkpoint = torch.load(os.path.join(MODEL_DIR, 'DualResNetv2_4.pt'), map_location='cpu')
     inputs = np.random.randint(0,1, size=(1, 9, 8, 8))
 
-    block = DualResNetNumpy.load_state_from_pytorch(checkpoint['network'])
-    # for i in tqdm(range(100), total=100):
-    #     output, policy = block.forward(inputs)
+    # block = DualResNetNumpy.load_state_from_pytorch(checkpoint['network'])
+    block = DualResNetNumpy(inplanes=9, res_block=3, conv_channel=128)
+    for i in tqdm(range(150), total=150):
+        output, policy = block.forward(inputs)
     output, policy = block.forward(inputs)
     print(output)
     print(policy)
