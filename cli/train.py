@@ -11,31 +11,30 @@ from utils.mcts import MCTS
 from utils.settings import EPS, ALPHA, TEMPERATURE_MOVE, PROCESS_TIMEOUT, PLAYOUT_ROUND
 from utils.rules import has_won
 from utils.database import Collection
-from utils.system_limit import memory_limit, time_limit
+from utils.system_limit import memory_limit, time_limit, get_gpu_memory_map
+
 logging.basicConfig(format='%(asctime)s:%(message)s',level=logging.DEBUG)
 
 def single_self_play(process_rank, model, return_dict=None, start_color=1, n_playout=PLAYOUT_ROUND):
     # quick fix to kill memory leak process from pytorch gpu api
+    idx = 0
+    initial_temp = 1.0
+    temp = initial_temp
+    history_stats = {
+        'total_steps':0,
+        'initial': start_color, 
+        'mcts_softmax': [],
+        'player_round': [],
+        'v': 0, # final result
+        'time': datetime.now(),
+        'board_history': [],
+    }
+    game = Game(player=start_color)
     try:
-        memory_limit(25.1*1024*1024*1024)
-        time_limit(1200)
-
-        # start self play round
-        model.eval()
-        history_stats = {
-            'total_steps':0,
-            'initial': start_color, 
-            'mcts_softmax': [],
-            'player_round': [],
-            'v': 0, # final result
-            'time': datetime.now(),
-            'board_history': [],
-        }
-        game = Game(player=start_color)
+        memory_limit(26.1*1024*1024*1024)
+        # time_limit(1500)
+        # do not set gradient to zero using with notation
         mcts = MCTS(model.policyvalue_function, initial_player=start_color, n_playout=n_playout)
-        idx = 0
-        initial_temp = 1.0
-        temp = initial_temp
         for _ in range(401):
             acts, probability, mcts_softmax = mcts.get_move_visits(game.copy(), temperature=temp)
             # pick a random move
@@ -45,14 +44,14 @@ def single_self_play(process_rank, model, return_dict=None, start_color=1, n_pla
             )
             step = acts[move_idx]
             history_stats['player_round'].append(game.current)
-
+            # logging.info('Step: {}, current player: {}\n'.format(idx, game.current ))
             # logging.info('Step: {}, current player: {}\nBoard: \n{}'.format(idx, game.current, previous_board-step ))
-
-            end, winner, reward = game.update_state(step)
-
             history_stats['board_history'].append(game.board)
             history_stats['mcts_softmax'].append(mcts_softmax)
 
+            # update board, switch user perspective, check game state 
+            end, winner, reward = game.update_state(step)
+            # change root node to current child
             mcts.update_with_move(step)
             history_stats['v'] = reward
             history_stats['winner'] = winner
@@ -62,15 +61,14 @@ def single_self_play(process_rank, model, return_dict=None, start_color=1, n_pla
             # an infinitesimal temperature is used, τ → 0
             if idx >= TEMPERATURE_MOVE and temp > 1e-3:
                 temp /= 10.0
-        # add the final board result
-        history_stats['board_history'].append(game.board)
-        history_stats['total_steps'] = idx
-        if return_dict:
-            return_dict[process_rank] = history_stats
+            # add the final board result
+            history_stats['board_history'].append(game.board)
+            history_stats['total_steps'] = idx
+
         collection = Collection('beta', model.VERSION)
         collection.add_game(history_stats)
     except:
-        logging.warning('process : {}, timeout or memory error'.format(process_rank))
+        logging.warning('memory error')
         return False
     return True
 
@@ -95,19 +93,19 @@ def kill_process(pool):
 
 def pool_selfplay(model, cpu=5, rounds=100):
     # logging.debug('Start parallel self play')
-    pool = Pool(processes=cpu)
-    processes = []
-    new_model = DualResNet()
-    new_model.load_state_dict(model.state_dict())
-    new_model = new_model.to(torch.device('cuda'))
-    for i in range(rounds):
-        res = pool.apply_async(single_self_play, (i, new_model, None))
-        processes.append(res)
-    for proc in tqdm(processes, total=rounds):
-        proc.wait(timeout=1200)
-        time.sleep(3)
-    pool.close()
-    pool.join()
+    with Pool(processes=cpu) as pool:
+        processes = []
+        for i in range(rounds):
+            res = pool.apply_async(single_self_play, (i, model, None))
+            processes.append(res)
+        success_count = 0
+        for proc in tqdm(processes, total=rounds):
+            proc.wait()
+            success = proc.get()
+            if success:
+                success_count += 1
+            time.sleep(3)
+    print("{}/{} self play has successfully done".format(success_count, rounds))
 
 if __name__ == "__main__":
     model = DualResNet()

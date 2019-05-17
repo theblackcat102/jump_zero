@@ -16,11 +16,11 @@ class BasicBlock(nn.Module):
     def __init__(self, inplanes, planes, stride=1, downsample=None):
         super(BasicBlock, self).__init__()
         
-        self.conv1 = nn.Conv2d(inplanes, planes, kernel_size=3, stride=stride,
+        self.conv1 = nn.Conv2d(inplanes, planes, kernel_size=(3,3), strides=(stride, stride),
                      padding=1, bias=False)
         self.bn1 = nn.BatchNorm2d(planes)
 
-        self.conv2 = nn.Conv2d(planes, planes, kernel_size=3, stride=stride,
+        self.conv2 = nn.Conv2d(planes, planes, kernel_size=(3,3), strides=(stride, stride),
                      padding=1, bias=False)
         self.bn2 = nn.BatchNorm2d(planes)
 
@@ -144,7 +144,7 @@ class ValueNet(nn.Module):
         return winning
 
 class DualResNet(nn.Module):
-    VERSION = 'v1.02'
+    VERSION = 'v1.04'
     def __init__(self, input_place=INPLANE, extractor_output=OUTPLANES_MAP,outputplane=OUTPLANES):
         super(DualResNet, self).__init__()
         self.extractor = Extractor(input_place, extractor_output)

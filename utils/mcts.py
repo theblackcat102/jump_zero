@@ -171,7 +171,7 @@ class MCTS:
         return acts, act_probs, generate_mcts_softmax(act_probs, starts, ends).flatten()
 
     def get_action(self, game, temp=1e-3, return_prob=0):
-        acts, probability, mcts_softmax = mcts.get_move_visits(game.copy(), temperature=temp)
+        acts, probability, mcts_softmax = self.get_move_visits(game.copy(), temperature=temp)
         # pick a random move
         valid_move_count = len(probability)
         if self._self_play:

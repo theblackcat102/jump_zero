@@ -7,18 +7,18 @@ C_PUCT = 4.0
 
 HISTORY_RECORDS = 3
 
-BLOCKS = 4 # number of residual block
+BLOCKS = 3 # number of residual block
 
 INPLANE = (HISTORY_RECORDS + 1)*2 + 1
 OUTPLANES = BOARD_WIDTH*BOARD_HEIGHT
 
-OUTPLANES_MAP = 64 # kernel number
+OUTPLANES_MAP = 128 # kernel number
 # number of self play round to carry before backprop neural network
-PARALLEL_SELF_PLAY = 100
-# mcts playout round
-PLAYOUT_ROUND = 400
+PARALLEL_SELF_PLAY = 300
+# mcts playout round, longer playout lead to higher memory leak
+PLAYOUT_ROUND = 100
 # how many latest rounds used for training
-SELF_TRAINING_ROUND = 400
+SELF_TRAINING_ROUND = 500
 # fixed learning rate
 LR = 0.01
 ## Number of MCTS simulation
@@ -41,7 +41,7 @@ BATCH_SIZE_EVAL = 2
 SELF_PLAY_MATCH = PARALLEL_SELF_PLAY
 ## Number of moves before changing temperature to stop
 ## exploration for more steps for large possible steps
-TEMPERATURE_MOVE = 30
+TEMPERATURE_MOVE = 50
 
 # storage
 IP= '192.168.0.103'

@@ -89,8 +89,8 @@ def hop_board(board, origins, between, new, move=1, recursive_depth=1):
         # if there's opposite in between remove it
         board[between_x][between_y] = 0
     # put the final board matrix, chess initial position, new position
-    possible_steps.append((np.copy(board), (origin_x, origin_y), new))
-    if recursive_depth > 99:
+    possible_steps.append((board, (origin_x, origin_y), new))
+    if recursive_depth > 50:
         return possible_steps
     # find next hop if available
     for offsets in [(1,0), (0,1), (-1, 0), (0, -1)]:
@@ -106,7 +106,7 @@ def hop_board(board, origins, between, new, move=1, recursive_depth=1):
         if (hop_point[0] != origin_x and hop_point[1] != origin_y):
             # check if theres any piece between hop point
             if board[points[0]][points[1]] != 0 and board[hop_point[0]][hop_point[1]] == 0:
-                possible_steps += hop_board(board, new, points, hop_point, move=move, recursive_depth=recursive_depth+1)
+                possible_steps += hop_board(np.copy(board), new, points, hop_point, move=move, recursive_depth=recursive_depth+1)
     return possible_steps # matrix
 
 @jit
@@ -155,7 +155,6 @@ def generate_extractor_input(current_board, board_history, current_player ):
     return inputs
 
 
-# @jit(nopython=True, parallel=True)
 def generate_mcts_softmax(probabilities, start_points, end_points, softmax_output = np.zeros((BOARD_WIDTH, BOARD_HEIGHT, BOARD_WIDTH, BOARD_HEIGHT))):
     for idx in range(len(probabilities)):
         s_x, s_y = start_points[idx]

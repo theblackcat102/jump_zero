@@ -2,6 +2,7 @@ import resource
 import sys
 import signal
 import time
+import subprocess
 
 def memory_limit(soft_limit=-1):
     _, hard = resource.getrlimit(resource.RLIMIT_AS)
@@ -29,3 +30,23 @@ def time_limit(time=1200):
     signal.signal(signal.SIGXCPU, time_expired)
     soft, hard = resource.getrlimit(resource.RLIMIT_CPU)
     resource.setrlimit(resource.RLIMIT_CPU, (time, hard))
+
+
+def get_gpu_memory_map():
+    """Get the current gpu usage.
+
+    Returns
+    -------
+    usage: dict
+        Keys are device ids as integers.
+        Values are memory usage as integers in MB.
+    """
+    result = subprocess.check_output(
+        [
+            'nvidia-smi', '--query-gpu=memory.used',
+            '--format=csv,nounits,noheader'
+        ])
+    # Convert lines into a dictionary
+    gpu_memory = [int(x) for x in result.decode('utf-8').strip().split('\n')]
+    gpu_memory_map = zip(range(len(gpu_memory)), gpu_memory)
+    return gpu_memory_map

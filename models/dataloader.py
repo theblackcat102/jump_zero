@@ -19,13 +19,22 @@ class GameDataset(Dataset):
         self.data = []
         logging.info('Start loading data')
         count = 0
+        player_win, tie, opponent_win = 0,  0,  0
+        avg_rounds = 0
 
         for playout in tqdm(self.collection.get_all()):
             if count > training_round:
                 break
             history = [np.zeros((BOARD_WIDTH, BOARD_HEIGHT))]*8
             value = playout['v']
+            if value > 0.5:
+                player_win += 1
+            elif value < -0.5:
+                opponent_win += 1
+            elif value == 0:
+                tie += 1
             current_player = playout['player_round'][0]
+            avg_rounds += len(playout['mcts_softmax'])
             for idx, softmax in enumerate(playout['mcts_softmax']):
                 current_board = playout['board_history'][idx]
                 inputs = generate_extractor_input(current_board, history, current_player)
@@ -37,6 +46,9 @@ class GameDataset(Dataset):
                     'v': float(value),
                 })
             count += 1
+
+        logging.info("Average rounds : {0:.4f}".format(avg_rounds/count))
+        logging.info("Win {}, Lose {}, Tie {}".format(player_win, opponent_win, tie))
         self.size = len(self.data)
 
     def __getitem__(self, item):
