@@ -74,13 +74,17 @@ class Game:
 
     def generate_nn_input(self):
         inputs = np.zeros((INPLANE, BOARD_WIDTH, BOARD_HEIGHT, ))
-        if self.current == 1:
-            inputs[-1, :, :] = np.ones((BOARD_WIDTH, BOARD_HEIGHT)).astype('float')
         inputs[0, :, :] = extract_chess(self.board, 1)
         inputs[HISTORY_RECORDS, :, :] = extract_chess(self.board, -1)
         for idx in range(min(HISTORY_RECORDS-1, len(self.history))):
             inputs[idx+1, :, :] = extract_chess(self.history[-1*idx], 1)
             inputs[idx+HISTORY_RECORDS+1, :, : ] = extract_chess(self.history[-1*idx], -1)
+
+        if self.current == 1:
+            inputs[-1, :, :] = np.ones((BOARD_WIDTH, BOARD_HEIGHT)).astype('float')
+        else:
+            inputs[-1, :, :] = np.zeros((BOARD_WIDTH, BOARD_HEIGHT)).astype('float')
+
         return inputs
 
     def current_state(self):

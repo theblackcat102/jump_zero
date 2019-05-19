@@ -15,7 +15,7 @@ from utils.system_limit import memory_limit, time_limit, get_gpu_memory_map
 
 logging.basicConfig(format='%(asctime)s:%(message)s',level=logging.DEBUG)
 
-def single_self_play(process_rank, model, return_dict=None, start_color=1, n_playout=PLAYOUT_ROUND):
+def single_self_play(process_rank, model, n_playout=PLAYOUT_ROUND, start_color=1 ):
     # quick fix to kill memory leak process from pytorch gpu api
     idx = 0
     initial_temp = 1.0
@@ -97,12 +97,12 @@ def kill_process(pool):
     time.sleep( 600 )
     pool.terminate()
 
-def pool_selfplay(model, cpu=5, rounds=100):
+def pool_selfplay(model, cpu=5, rounds=100, n_playout=PLAYOUT_ROUND):
     # logging.debug('Start parallel self play')
     with Pool(processes=cpu) as pool:
         processes = []
         for i in range(rounds):
-            res = pool.apply_async(single_self_play, (i, model, None))
+            res = pool.apply_async(single_self_play, (i, model, n_playout))
             processes.append(res)
         success_count = 0
         for proc in tqdm(processes, total=rounds):
@@ -113,8 +113,8 @@ def pool_selfplay(model, cpu=5, rounds=100):
                     success_count += 1
             except KeyboardInterrupt:
                 return 0
-            except:
-                pass
+            except BaseException as e:
+                logging.warning('failed self play {}'.format(str(e)))
     print("{}/{} self play has successfully done".format(success_count, rounds))
 
 if __name__ == "__main__":
@@ -123,8 +123,5 @@ if __name__ == "__main__":
     model = model.to(device)
     collection = Collection('beta', model.VERSION)
     logging.info('Start selfplay')
-    # multiprocessing_selfplay(model, cpu=5)
-    # return_dict = {}
-    game_stat = single_self_play(1, model, None)
-    # collection.add_batch(return_dict.values())
+    game_stat = single_self_play(1, model, n_playout=120)
     logging.info('End self play')

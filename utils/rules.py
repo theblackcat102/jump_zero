@@ -9,17 +9,14 @@ def point_within_boundary(points):
         return True
     return False
 
-@jit
 def extract_chess(board, piece_number):
     # extract for individual pieces for neural network state snapshot
-    result = np.zeros((BOARD_WIDTH, BOARD_HEIGHT)).astype('float')
-    for x in range(BOARD_WIDTH):
-        for y in range(BOARD_HEIGHT):
-            if board[x][y] == piece_number:
-                result[x][y] = 1.0
-    return result
+    original_array = np.copy(board)
+    original_array[ original_array != piece_number ] = 0
+    original_array[ original_array == piece_number ] = 1
+    return original_array.astype('float')
+    # return result
 
-@jit
 def has_won(board, white_step, black_step):
     '''
     1 is black, -1 is white, 0 is empty
@@ -54,7 +51,7 @@ def has_won(board, white_step, black_step):
             return 1
         return 2 # tie
 
-    if white_cnt_blk_region+ black_cnt_blk_region == 0:
+    if white_cnt_blk_region+black_cnt_blk_region == 0:
         return 0
     # End Game 1: Either player has all his/her pieces on the board in the target region
     # End game 2: A maximum of 200 moves per player has been played
@@ -238,4 +235,5 @@ if __name__ == "__main__":
     # for (step, previous_points, new_points) in possible_steps:
     #     print(new_points) # the new location which the piece has moved to new location
     #     print(step-test_hop)
-    # extract_chess(black_won, 1)
+    print(extract_chess(black_won, 1))
+    print(extract_chess(black_won,-1))

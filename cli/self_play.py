@@ -105,8 +105,6 @@ def train_model(model, optimizer, round_count, num_iter, writer, device, epochs=
         elif kl < kl_target / 2 and lr_multiplier < 10:
             lr_multiplier *= 1.5
 
-    # print('Saving model...')
-    clean_gpu_cache()
     return model, optimizer, num_iter, lr_multiplier
 
 # train_pool = Pool()
@@ -139,6 +137,7 @@ if __name__ == "__main__":
     epochs = 1 # number of epoch training
     batch_size = 256
     num_iter = writer_idx
+    n_playout = PLAYOUT_ROUND
 
     device = torch.device('cuda' if torch.cuda.is_available() else 'cpu')
     if torch.cuda.is_available():
@@ -166,7 +165,6 @@ if __name__ == "__main__":
     writer = SummaryWriter(log_dir=log_dir % name)
 
     logging.info('Start self play')
-    # collection = Collection('beta', model.VERSION)
 
     while True:
         '''
@@ -178,9 +176,10 @@ if __name__ == "__main__":
             logging.info('Skipping first round, straight into backprop')
         else:
             model.eval()
-            pool_selfplay(model, cpu, rounds=PARALLEL_SELF_PLAY)
-            # except:
-            #     pass
+            pool_selfplay(model, cpu, rounds=PARALLEL_SELF_PLAY, n_playout=n_playout)
+
+        if round_count > 10 and n_playout < 200:
+            n_playout += 5
         '''
             Backpropagation using self play MCTS
         '''
