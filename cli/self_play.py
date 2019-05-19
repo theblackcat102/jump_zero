@@ -13,7 +13,7 @@ from utils.game import Game
 from utils.mcts import MCTS
 from utils.settings import ( 
     EPS, ALPHA, PLAYOUT_ROUND, PARALLEL_SELF_PLAY, 
-    MODEL_DIR, LR, SELF_TRAINING_ROUND, L2_REG
+    MODEL_DIR, LR, SELF_TRAINING_ROUND, L2_REG, CPU_COUNT
 )
 import logging
 from utils.rules import has_won
@@ -115,7 +115,7 @@ if __name__ == "__main__":
     # train_selfplay(load_model=None, 
     #     cpu=10, init_round=0, log_dir='./log/v3_%s', 
     #     skip_first=False)
-    cpu = 12
+    cpu = CPU_COUNT
     init_round = 0
     writer_idx = 0
     log_dir='./log/v6.0_%s'
@@ -178,7 +178,7 @@ if __name__ == "__main__":
             model.eval()
             pool_selfplay(model, cpu, rounds=PARALLEL_SELF_PLAY, n_playout=n_playout)
 
-        if round_count > 10 and n_playout < 200:
+        if round_count > 10 and n_playout < 180:
             n_playout += 5
         '''
             Backpropagation using self play MCTS

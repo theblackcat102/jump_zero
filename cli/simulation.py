@@ -80,7 +80,7 @@ if __name__ == "__main__":
             model.eval()
             pool_selfplay(model, cpu, rounds=PARALLEL_SELF_PLAY, n_playout=n_playout)
 
-        if round_count > 10 and n_playout < 200:
+        if round_count > 10 and n_playout < 180:
             n_playout += 5
 
         if os.path.isfile(os.path.join(MODEL_DIR, load_model)):
