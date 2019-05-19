@@ -87,3 +87,14 @@ To move the final model's weights to a numpy version of the same neural network,
 ## Issues
 
 1. Random memory leak from pytorch in individual process when self play in MCTS is too high ( > 200 )
+
+## Code reference
+
+1. https://github.com/junxiaosong/AlphaZero_Gomoku
+
+2. https://github.com/dylandjian/SuperGo
+
+## Fun Fact
+Alpha zero algorithm seems to be patented by DeepMind : https://patentscope2.wipo.int/search/en/detail.jsf?docId=WO2018215665&fbclid=IwAR1FX90V0xsaf6FZUA3U7DEIMC_xGKA4GaCq4Fgg31hFebo7QKM0CUk3Uhw
+
+Please don't sue me please, I do not own any of these except the rules and code
