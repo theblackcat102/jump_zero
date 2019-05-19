@@ -41,7 +41,7 @@ class Game:
         end = False
         winner = check_state
         reward = 0
-        if check_state != 0:
+        if check_state != 0: # tie=2, win=1, lose=-1
             end = True
             winner = check_state # -1 is white, 1 is black
             reward = self.reward_function(winner)

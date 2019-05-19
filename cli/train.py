@@ -31,8 +31,8 @@ def single_self_play(process_rank, model, return_dict=None, start_color=1, n_pla
     }
     game = Game(player=start_color)
     try:
-        memory_limit(26.1*1024*1024*1024)
-        # time_limit(1500)
+        memory_limit(25*1024*1024*1024)
+        # time_limit(900) # cannot time limit when using process pool
         # do not set gradient to zero using with notation
         mcts = MCTS(model.policyvalue_function, initial_player=start_color, n_playout=n_playout)
         for _ in range(401):
@@ -67,8 +67,13 @@ def single_self_play(process_rank, model, return_dict=None, start_color=1, n_pla
 
         collection = Collection('beta', model.VERSION)
         collection.add_game(history_stats)
+    except ValueError:
+        logging.warning('value error')
+    except TimeoutError:
+        logging.warning('timeout error')
     except:
         logging.warning('memory error')
+    finally:
         return False
     return True
 
@@ -77,6 +82,7 @@ def multiprocessing_selfplay(model, cpu=5):
     logging.debug('Start parallel self play')
     processes = []
     model = model.to(torch.device('cuda'))
+
     for rank in range(cpu):
         p = Process(target=single_self_play, args=(rank, model, None))
         p.start()
@@ -100,11 +106,15 @@ def pool_selfplay(model, cpu=5, rounds=100):
             processes.append(res)
         success_count = 0
         for proc in tqdm(processes, total=rounds):
-            proc.wait()
-            success = proc.get()
-            if success:
-                success_count += 1
-            time.sleep(3)
+            try:
+                proc.wait()
+                success = proc.get()
+                if success:
+                    success_count += 1
+            except KeyboardInterrupt:
+                return 0
+            except:
+                pass
     print("{}/{} self play has successfully done".format(success_count, rounds))
 
 if __name__ == "__main__":

@@ -32,20 +32,27 @@ def has_won(board, white_step, black_step):
     board = board.astype('int')
     unique, counts = np.unique(board.flatten(), return_counts=True)
     result = dict(zip(unique, counts))
-
+        
     black_region = board[:, :2] 
-    white_region = board[:, -2:]
-    # print(black_region)
-    # print(white_region)
+
     white_cnt_blk_region, black_cnt_blk_region = 0, 0
+    unique, counts = np.unique(black_region, return_counts=True)
+    black_region_result = dict(zip(unique, counts))
+    if -1 in black_region_result:
+        white_cnt_blk_region = black_region_result[-1]
 
-    for e in black_region.flatten():
-        if e == -1:
-            white_cnt_blk_region += 1
+    white_region = board[:, -2:]
+    unique, counts = np.unique(white_region, return_counts=True)
+    white_region_result = dict(zip(unique, counts))
+    if 1 in white_region_result:
+        black_cnt_blk_region = white_region_result[1]
 
-    for e in white_region.flatten():
-        if e == 1:
-            black_cnt_blk_region += 1
+    if len(result) == 2: # only one side chess left
+        if white_cnt_blk_region > 0:
+            return -1
+        elif black_cnt_blk_region > 0:
+            return 1
+        return 2 # tie
 
     if white_cnt_blk_region+ black_cnt_blk_region == 0:
         return 0
@@ -56,8 +63,7 @@ def has_won(board, white_step, black_step):
         white_step >= 200 or black_step >= 200:
 
         if white_cnt_blk_region == black_cnt_blk_region:
-            return 2
-
+            return 2 # tie
         return -1 if white_cnt_blk_region > black_cnt_blk_region else 1
     
     # not end yet
@@ -163,73 +169,73 @@ def generate_mcts_softmax(probabilities, start_points, end_points, softmax_outpu
     return softmax_output
 
 if __name__ == "__main__":
-    # test = [[ 1, 0, 0, 0, 0, 0, 0, 0], 
-    #         [ 0, 1, 0, 0, 0, 0, 0,-1],
-    #         [ 1, 0, 0, 0, 1, 0,-1, 0],
-    #         [ 0, 1, 0, 0, 0,-1, 0,-1],
-    #         [ 1, 0, 1, 0, 0, 0,-1, 0],
-    #         [ 0, 0, 0, 0, 1,-1, 0,-1],
-    #         [ 1, 0, 0, 0, 0, 0,-1, 0],
-    #         [ 0, 0, 0, 0, 0, 0, 0,-1], ]
+    test = [[ 0, 0, 0, -1, 0, 0, 0, 0],
+            [ 0, 0, 0, 0, 0,-1, 0, 0],
+            [ 0,-1, 0, 0, 0,-1, 0, 0],
+            [ 0, 0, 0, 0, 0, 0, 0, 0],
+            [ 0, 0, 0, 0, 0, 0, 0, 0],
+            [ 0,-1, 0, 0, -1, 0,-1, -1],
+            [ 0, 0, 0, 0, 0, 0, 0, 0],
+            [ 0, 0, 0, 0,-1, 0, 0,-1],]
     # print(str(np.asarray(test)))
     # # draw, both region has zero pieces
-    # print(has_won(np.asarray(test), 200, 10))
-    # draw = [[-1, 0, 0, 0, 0, 0, 0, 0], 
-    #         [ 0, 1, 0, 0, 0, 0, 0,-1],
-    #         [ 1, 0, 0, 0, 1, 0,-1, 0],
-    #         [ 0, 1, 0, 0, 0,-1, 0,-1],
-    #         [ 1, 0, 1, 0, 0, 0,-1, 0],
-    #         [ 0, 0, 0, 0, 1,-1, 0,-1],
-    #         [ 1, 0, 0, 0, 0, 0,-1, 0],
-    #         [ 0, 0, 0, 0, 0, 0, 0, 1], ]
-    # print(has_won(np.asarray(draw), 200, 10))
+    print("white won", has_won(np.asarray(test), 10, 10))
+    draw = [[ 0, 0, 0, 0, -1, 0, 0, 0],
+            [ 0, 0,-1, 0, 0, 0, 0, 0],
+            [ 0, 0, 0,-1, 0, 0, 0, 0],
+            [ 0, 0, 0,-1, 0, 0, 0, 0],
+            [ 0, 0, 0, 0, 0, 0, 0, 0],
+            [ 0, 0, 0, 0, 0, 0, 0, 0],
+            [ 0, 0, 0, 0, 0, -1, 0, 0],
+            [ 0, 0, 0, 0, 0, 0, 0, 0]]
+    print("tie ", has_won(np.asarray(draw), 20, 10))
     # # continue game
     # print(has_won(np.asarray(test), 11, 10))
     # print(has_won(np.asarray(test), 0, 0))
-    # white_won =[[-1, 0, 0, 0, 0, 0, 0, 0], 
-    #             [ 0, 1, 0, 0, 0, 0, 0,-1],
-    #             [ 1, 0, 1, 0, 0, 0,-1, 0],
-    #             [ 0, 1, 0, 0, 0,-1, 0, 1],
-    #             [-1, 0, 1, 0, 0, 0,-1, 0],
-    #             [-1, 1, 0, 0, 0, 0, 0,-1],
-    #             [ 1, 0, 0, 0, 0, 0,-1, 0],
-    #             [ 0, 0, 0, 0, 0, 0, 0,-1], ]
-    # print(has_won(np.asarray(white_won), 200, 10))
-    # black_won =[[-1, 0, 0, 0, 0, 0, 0, 0], 
-    #             [ 0, 1, 0, 0, 0, 0, 0, 1],
-    #             [ 1, 0, 1, 0, 0, 0,-1, 0],
-    #             [ 0, 1, 0, 0, 0,-1, 0, 1],
-    #             [-1, 0, 1, 0, 0, 0,-1, 0],
-    #             [-1, 1, 0, 0, 0, 0, 0, 1],
-    #             [ 1, 0, 0, 0, 0, 0,-1, 0],
-    #             [ 0, 0, 0, 0, 0, 0, 0, 1], ]
-    # print(has_won(np.asarray(black_won), 200, 10))
+    white_won =[[-1, 0, 0, 0, 0, 0, 0, 0], 
+                [ 0, 1, 0, 0, 0, 0, 0,-1],
+                [ 1, 0, 1, 0, 0, 0,-1, 0],
+                [ 0, 1, 0, 0, 0,-1, 0, 1],
+                [-1, 0, 1, 0, 0, 0,-1, 0],
+                [-1, 1, 0, 0, 0, 0, 0,-1],
+                [ 1, 0, 0, 0, 0, 0,-1, 0],
+                [ 0, 0, 0, 0, 0, 0, 0,-1], ]
+    print("white won", has_won(np.asarray(white_won), 200, 10))
+    black_won =[[-1, 0, 0, 0, 0, 0, 0, 0], 
+                [ 0, 1, 0, 0, 0, 0, 0, 1],
+                [ 1, 0, 1, 0, 0, 0,-1, 0],
+                [ 0, 1, 0, 0, 0,-1, 0, 1],
+                [-1, 0, 1, 0, 0, 0,-1, 0],
+                [-1, 1, 0, 0, 0, 0, 0, 1],
+                [ 1, 0, 0, 0, 0, 0,-1, 0],
+                [ 0, 0, 0, 0, 0, 0, 0, 1], ]
+    print("black won", has_won(np.asarray(black_won), 200, 10))
     # # all steps in white area
-    # black_won =[[-1, 0, 0, 0, 0, 0, 0, 0], 
-    #             [ 0, 0, 0, 0, 0, 0, 0, 1],
-    #             [ 0, 0, 0, 0, 0, 0,-1, 0],
-    #             [ 0, 0, 0, 0, 0,-1, 0, 1],
-    #             [-1, 0, 0, 0, 0, 0,-1, 0],
-    #             [-1, 0, 0, 0, 0, 0, 0, 1],
-    #             [ 0, 0, 0, 0, 0, 0,-1, 0],
-    #             [ 0, 0, 0, 0, 0, 0, 0, 1], ]
-    # print(has_won(np.asarray(black_won), 100, 10))
-    test_hop =[ [ 0, 0, 0, 0, 0, 0, 0, 0], 
-                [ 0, 1, 1, 0, 0, 0, 0, 0],
-                [ 0, 0, -1, -1, 0, 0, 0, 0],
-                [ 0, 0, 0, 0, 0, 0, 0, 0],
-                [ 0, 0, 0, 0, 0, 0, 0, 0],
-                [ 0, 0, 0, 0, 0, 0, 0, 0],
-                [ 0, 0, 0, 0, 0, 0, 0, 0],
-                [ 0, 0, 0, 0, 0, 0, 0, 0], ]
+    black_won =[[-1, 0, 0, 0, 0, 0, 0, 0], 
+                [ 0, 0, 0, 0, 0, 0, 0, 1],
+                [ 0, 0, 0, 0, 0, 0,-1, 0],
+                [ 0, 0, 0, 0, 0,-1, 0, 1],
+                [-1, 0, 0, 0, 0, 0,-1, 0],
+                [-1, 0, 0, 0, 0, 0, 0, 1],
+                [ 0, 0, 0, 0, 0, 0,-1, 0],
+                [ 0, 0, 0, 0, 0, 0, 0, 1], ]
+    print("black won", has_won(np.asarray(black_won), 100, 10))
+    # test_hop =[ [ 0, 0, 0, 0, 0, 0, 0, 0], 
+    #             [ 0, 1, 1, 0, 0, 0, 0, 0],
+    #             [ 0, 0, -1, -1, 0, 0, 0, 0],
+    #             [ 0, 0, 0, 0, 0, 0, 0, 0],
+    #             [ 0, 0, 0, 0, 0, 0, 0, 0],
+    #             [ 0, 0, 0, 0, 0, 0, 0, 0],
+    #             [ 0, 0, 0, 0, 0, 0, 0, 0],
+    #             [ 0, 0, 0, 0, 0, 0, 0, 0], ]
 
-    # possible_steps = hop_board(test_hop, (1,1), (1,2), (1,3), move=1)
-    possible_steps = next_steps(np.array(test_hop), move=-1)
-    for (step, previous_points, new_points) in possible_steps:
-        print(new_points) # the new location which the piece has moved to new location
-        print(step)
-    possible_steps = next_steps(np.array(test_hop), move=1)
-    for (step, previous_points, new_points) in possible_steps:
-        print(new_points) # the new location which the piece has moved to new location
-        print(step-test_hop)
+    # # possible_steps = hop_board(test_hop, (1,1), (1,2), (1,3), move=1)
+    # possible_steps = next_steps(np.array(test_hop), move=-1)
+    # for (step, previous_points, new_points) in possible_steps:
+    #     print(new_points) # the new location which the piece has moved to new location
+    #     print(step)
+    # possible_steps = next_steps(np.array(test_hop), move=1)
+    # for (step, previous_points, new_points) in possible_steps:
+    #     print(new_points) # the new location which the piece has moved to new location
+    #     print(step-test_hop)
     # extract_chess(black_won, 1)

@@ -3,6 +3,14 @@ import numpy as np
 from utils.rules import *
 from utils.game import init_board
 from utils.settings import BOARD_HEIGHT, BOARD_WIDTH, C_PUCT, PLAYOUT_ROUND
+import logging
+
+logger = logging.getLogger('mcts')
+fh = logging.FileHandler('mcts_error.log')
+fh.setLevel(logging.WARNING)
+formatter = logging.Formatter('%(asctime)s - %(name)s - %(levelname)s - %(message)s')
+fh.setFormatter(formatter)
+logger.addHandler(fh)
 
 def softmax(x):
     probs = np.exp(x - np.max(x))
@@ -121,8 +129,7 @@ class MCTS:
         node = self._root
         # traverse until the leaf node
         end = False
-        reward = 0
-        depth = 0
+        reward, depth = 0, 0
         while True:
             if node.is_leaf() or depth > 400:
                 break
@@ -154,11 +161,9 @@ class MCTS:
             self._playout(state.copy())
 
         if len(self._root._children) == 0:
-            probability, prediction = self._policy(state.copy())
-            self._root.expand(probability)
-            value = prediction
-            # backpropagation
-            self._root.update_recursive(-value)
+            logger.warning('Step: {}, current player: {}\nBoard: \n{}'.format(state.player_step+state.opponent_step , state.current, state.board ))
+            raise ValueError('no steps found')
+
         visits = []
         for node_key, node in self._root._children.items():
             visits.append((np.fromstring(node_key, dtype=int).reshape(BOARD_WIDTH, BOARD_HEIGHT), node._n_visits, node.start, node.end))

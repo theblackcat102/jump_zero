@@ -24,10 +24,11 @@ def get_memory():
     return free_memory
 
 def time_expired(n, stack):
-    raise SystemExit('(time ran out)')
+    # raise SystemExit('(time ran out)')
+    raise TimeoutError('time ran out')
 
 def time_limit(time=1200):
-    signal.signal(signal.SIGXCPU, time_expired)
+    # signal.signal(signal.SIGXCPU, time_expired)
     soft, hard = resource.getrlimit(resource.RLIMIT_CPU)
     resource.setrlimit(resource.RLIMIT_CPU, (time, hard))
 

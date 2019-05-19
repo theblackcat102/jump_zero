@@ -1,3 +1,6 @@
+import os
+os.environ['OPENBLAS_NUM_THREADS'] = '1'
+os.environ['MKL_NUM_THREADS'] = '1'
 import pickle
 import numpy as np
 from models.layers import Conv2d, BatchNorm, ReLU, Dense, Softmax, Sigmoid, Layers, Tanh
@@ -261,15 +264,13 @@ class DualResNetNumpy():
 if __name__ == "__main__":
     import torch, os
     from tqdm import tqdm
-    # os.environ['OPENBLAS_NUM_THREADS'] = '1'
-    # os.environ['MKL_NUM_THREADS'] = '1'
     MODEL_DIR = './checkpoint'
     checkpoint = torch.load(os.path.join(MODEL_DIR, 'DualResNetv2_4.pt'), map_location='cpu')
     inputs = np.random.randint(0,1, size=(1, 9, 8, 8))
 
     # block = DualResNetNumpy.load_state_from_pytorch(checkpoint['network'])
-    block = DualResNetNumpy(inplanes=9, res_block=3, conv_channel=128)
-    for i in tqdm(range(150), total=150):
+    block = DualResNetNumpy(inplanes=9, res_block=5, conv_channel=64)
+    for i in tqdm(range(1000), total=1000):
         output, policy = block.forward(inputs)
     output, policy = block.forward(inputs)
     print(output)

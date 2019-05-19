@@ -7,20 +7,20 @@ C_PUCT = 4.0
 
 HISTORY_RECORDS = 3
 
-BLOCKS = 3 # number of residual block
+BLOCKS = 5 # number of residual block
 
 INPLANE = (HISTORY_RECORDS + 1)*2 + 1
 OUTPLANES = BOARD_WIDTH*BOARD_HEIGHT
 
-OUTPLANES_MAP = 128 # kernel number
+OUTPLANES_MAP = 64 # kernel number
 # number of self play round to carry before backprop neural network
-PARALLEL_SELF_PLAY = 300
+PARALLEL_SELF_PLAY = 20
 # mcts playout round, longer playout lead to higher memory leak
-PLAYOUT_ROUND = 100
+PLAYOUT_ROUND = 120
 # how many latest rounds used for training
-SELF_TRAINING_ROUND = 500
+SELF_TRAINING_ROUND = 100
 # fixed learning rate
-LR = 0.01
+LR = 0.002
 ## Number of MCTS simulation
 MCTS_SIM = 64
 ## Exploration constant
@@ -46,5 +46,5 @@ TEMPERATURE_MOVE = 50
 # storage
 IP= '192.168.0.103'
 
-MODEL_DIR = './checkpoint'
+MODEL_DIR = './checkpointv2'
 PROCESS_TIMEOUT = 700
