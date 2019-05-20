@@ -1,3 +1,4 @@
+import os, sys
 import time
 import numpy as np
 from datetime import datetime
@@ -15,7 +16,7 @@ from utils.system_limit import memory_limit, time_limit, get_gpu_memory_map
 
 logging.basicConfig(format='%(asctime)s:%(message)s',level=logging.DEBUG)
 
-def single_self_play(process_rank, model, n_playout=PLAYOUT_ROUND, start_color=1 ):
+def single_self_play(process_rank, model, n_playout=PLAYOUT_ROUND, start_color=1, print_step=False ):
     # quick fix to kill memory leak process from pytorch gpu api
     idx = 0
     initial_temp = 1.0
@@ -45,7 +46,8 @@ def single_self_play(process_rank, model, n_playout=PLAYOUT_ROUND, start_color=1
             step = acts[move_idx]
             history_stats['player_round'].append(game.current)
             # logging.info('Step: {}, current player: {}\n'.format(idx, game.current ))
-            # logging.info('Step: {}, current player: {}\nBoard: \n{}'.format(idx, game.current, previous_board-step ))
+            if print_step:
+                logging.info('Step: {}, current player: {}\nBoard: \n{}'.format(idx, game.current, step ))
             history_stats['board_history'].append(game.board)
             history_stats['mcts_softmax'].append(mcts_softmax)
 
@@ -71,6 +73,8 @@ def single_self_play(process_rank, model, n_playout=PLAYOUT_ROUND, start_color=1
         logging.warning('value error')
     except TimeoutError:
         logging.warning('timeout error')
+    except KeyboardInterrupt:
+        sys.exit()
     except:
         logging.warning('memory error')
     finally:

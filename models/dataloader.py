@@ -14,7 +14,7 @@ from utils.rules import generate_extractor_input
 logging.basicConfig(format='%(asctime)s:%(message)s',level=logging.INFO)
 
 class GameDataset(Dataset):
-    def __init__(self, codebase_version, model_version, training_round=500):
+    def __init__(self, codebase_version, model_version, training_round=500, balance_value=True):
         self.collection = Collection(codebase_version, model_version)
         self.data = []
 
@@ -24,7 +24,9 @@ class GameDataset(Dataset):
         avg_rounds = 0
         win_data, lose_data, tie_data = [], [], []
         for playout in tqdm(self.collection.get_all()):
-            if min([player_win, opponent_win, tie ]) > (training_round / 3):
+            if min([player_win, opponent_win, tie ]) > (training_round / 3) and balance_value:
+                break
+            if not balance_value and (player_win+opponent_win+tie) > training_round:
                 break
             history = [np.zeros((BOARD_WIDTH, BOARD_HEIGHT))]*8
             value = playout['v']
@@ -41,33 +43,41 @@ class GameDataset(Dataset):
                 inputs = generate_extractor_input(current_board, history, current_player)
                 current_player = -1 if current_player==1 else -1
                 # softmax = playout['mcts_softmax'][idx]
-                if value == 1:
-                    win_data.append({
-                        'input': np.array(inputs),
-                        'softmax': np.array(softmax),
-                        'v': float(value),
-                    })
-                elif value == -1:
-                    lose_data.append({
-                        'input': np.array(inputs),
-                        'softmax': np.array(softmax),
-                        'v': float(value),
-                    })
+                if balance_value:
+                    if value == 1:
+                        win_data.append({
+                            'input': np.array(inputs),
+                            'softmax': np.array(softmax),
+                            'v': float(value),
+                        })
+                    elif value == -1:
+                        lose_data.append({
+                            'input': np.array(inputs),
+                            'softmax': np.array(softmax),
+                            'v': float(value),
+                        })
+                    else:
+                        tie_data.append({
+                            'input': np.array(inputs),
+                            'softmax': np.array(softmax),
+                            'v': float(value),
+                        })
                 else:
-                    tie_data.append({
-                        'input': np.array(inputs),
-                        'softmax': np.array(softmax),
-                        'v': float(value),
-                    })
+                    self.data.append({
+                            'input': np.array(inputs),
+                            'softmax': np.array(softmax),
+                            'v': float(value),
+                        })
             count += 1
         # balance the rounds of winning and losing
-        for idx in range(min([len(win_data),len(lose_data) ])):
-            if len(win_data) > idx:
-                self.data.append( win_data[idx] )
-            if len(lose_data) > idx:
-                self.data.append( lose_data[idx] )
-            if len(tie_data) > idx:
-                self.data.append( tie_data[idx] )
+        if balance_value:
+            for idx in range(min([len(win_data),len(lose_data) ])):
+                if len(win_data) > idx:
+                    self.data.append( win_data[idx] )
+                if len(lose_data) > idx:
+                    self.data.append( lose_data[idx] )
+                if len(tie_data) > idx:
+                    self.data.append( tie_data[idx] )
 
         logging.info("Average rounds : {0:.4f}".format(avg_rounds/count))
         logging.info("Win {}, Lose {}, Tie {}".format(player_win, opponent_win, tie))

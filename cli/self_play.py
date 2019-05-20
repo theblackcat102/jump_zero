@@ -55,8 +55,7 @@ def train_model(model, optimizer, round_count, num_iter, writer, device, epochs=
     loss = {}
     batch_num = len(dataloader) // batch_size
     model.train()
-    
-    
+        
     test_batch = next(iter(dataloader))
     feature = test_batch['input'].to(device, dtype=torch.float).permute(0, 3, 1, 2)    
     old_softmax, _ = model(feature)
@@ -70,7 +69,7 @@ def train_model(model, optimizer, round_count, num_iter, writer, device, epochs=
                 mcts_softmax = batch['softmax'].to(device, dtype=torch.float)
                 value = batch['value'].to(device, dtype=torch.float)
                 optimizer.zero_grad()
-                set_learning_rate(optimizer, min(lr*lr_multiplier, 0.01) )
+                set_learning_rate(optimizer, max(min(lr*lr_multiplier, 0.01), 0.0001) )
 
                 log_pred_softmax, pred_value = model(feature)
                 value_loss, policy_loss, loss = alpha_loss(log_pred_softmax, mcts_softmax, pred_value, value)
@@ -122,7 +121,7 @@ if __name__ == "__main__":
     load_model = None #'DualResNetv3_14.pt'
     round_limit = 1000
     lr_multiplier = 1.0 # default =1
-    skip_first = True
+    skip_first = False
     '''
         load_model: model name to load in string
         cpu: total multiprocessing core to use

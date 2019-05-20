@@ -279,21 +279,31 @@ class DualResNetNumpy():
 if __name__ == "__main__":
     import torch, os
     from tqdm import tqdm
+    from models.dualresnet import DualResNet
     MODEL_DIR = './checkpointv2'
     checkpoint = torch.load(os.path.join(MODEL_DIR, 'DualResNetv3_13.pt'), map_location='cpu')
-
-
+    model = DualResNet()
+    model.load_state_dict(checkpoint['network'])
+    model.eval()
     block = DualResNetNumpy.load_state_from_pytorch(checkpoint['network'])
     # block = DualResNetNumpy(inplanes=9, res_block=5, conv_channel=64)
 
-    avg_val = 0
-    for i in tqdm(range(1000), total=1000):
-        inputs = np.random.randint(0,2, size=(1, 9, 8, 8))
-        inputs[0, -1, :, :] = np.random.choice([1.0, 0.0])
-        value, policy = block.forward(inputs)
-        avg_val += value[0][0]
-
-    print(avg_val/1000)
+    # avg_val = 0
+    # for i in tqdm(range(1000), total=1000):
+    inputs = np.random.randint(0,2, size=(100, 9, 8, 8))
+    for i in range(100):
+        inputs[i, -1, :, :] = np.random.choice([1.0, 0.0])
     value, policy = block.forward(inputs)
-    print(value)
-    print(policy)
+    py_policy, py_value = model(torch.from_numpy(inputs).type('torch.FloatTensor'))
+    py_policy = np.exp(py_policy.data.cpu().numpy())
+    py_value = py_value.data.cpu().numpy()
+
+    print('value MSE {}'.format(np.mean( ( py_value - value )**2 )))
+    print('softmax MSE {}'.format(np.mean( ( py_policy - policy )**2 )))
+    # print(avg_val/1000)
+    # value, policy = block.forward(inputs)
+    # py_policy, py_value = model(torch.from_numpy(inputs).type('torch.FloatTensor'))
+    # print(value)
+    # print(py_value)
+    # print(policy)
+    # print(torch.exp(py_policy))

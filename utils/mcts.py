@@ -112,7 +112,7 @@ class TreeNode(object):
 
 class MCTS:
 
-    def __init__(self, policy_value_fn, initial_player=1, c_puct=C_PUCT, n_playout=PLAYOUT_ROUND, self_play=True):
+    def __init__(self, policy_value_fn, c_puct=C_PUCT, n_playout=PLAYOUT_ROUND, self_play=True):
         self._root = TreeNode(parent=None, prior_p=1.0, start=(0, 0), end=(0, 0) )
         self._c_puct = c_puct
         self._policy = policy_value_fn # output list of (move, prob), and envaluation value
@@ -176,7 +176,7 @@ class MCTS:
         return acts, act_probs, generate_mcts_softmax(act_probs, starts, ends).flatten()
 
     def get_action(self, game, temp=1e-3, return_prob=0):
-        acts, probability, mcts_softmax = self.get_move_visits(game.copy(), temperature=temp)
+        acts, probability, _ = self.get_move_visits(game, temperature=temp)
         # pick a random move
         valid_move_count = len(probability)
         if self._self_play:
@@ -184,9 +184,9 @@ class MCTS:
                 p=(1-EPS)*probability + EPS*np.random.dirichlet(ALPHA*np.ones(valid_move_count))
             )
         else:
-            move_idx = np.random.choice(valid_move_count, probability)
+            move_idx = np.random.choice(valid_move_count, p=probability)
         step = acts[move_idx]
-        return step, 
+        return step
 
 
     def update_with_move(self, new_move):
@@ -200,7 +200,6 @@ class MCTS:
             self._root = self._root._children[new_move]
             self._root._parent = None
         else:
-            print('reset')
             # maybe act as reset?
             self._root = TreeNode(None, 1.0)
 

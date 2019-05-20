@@ -1,6 +1,7 @@
 import numpy as np
 from utils.rules import *
 from utils.settings import *
+from copy import deepcopy
 
 init_board = np.array([[ 1, 0, 0, 0, 0, 0, 0, 0], 
                 [ 0, 1, 0, 0, 0, 0, 0,-1],
@@ -27,7 +28,7 @@ class Game:
     def update_state(self, board):
         self.history.append(self.board)
         self.history = self.history[-STORE_HISTORY:]
-        self.board = np.copy(board).astype('int')
+        self.board = np.copy(board)
 
         if self.current == self.player:
             self.player_step += 1
@@ -90,16 +91,16 @@ class Game:
         return self.generate_nn_input()
     
     def copy(self):
-        game = Game(self.player)
-        game.board = np.copy(self.board)
-        game.player = self.player
-        game.opponent = 1 if self.player == -1 else -1
-        # 1(black) always start first
-        game.current = self.current
-        game.history = [ np.copy(hist) for hist in self.history ]
-        game.player_step = self.player_step
-        game.opponent_step = 0        
-        return game
+        # game = Game(self.player)
+        # game.board = np.copy(self.board)
+        # game.player = self.player
+        # game.opponent = 1 if self.player == -1 else -1
+        # # 1(black) always start first
+        # game.current = self.current
+        # game.history = [ np.copy(hist) for hist in self.history ]
+        # game.player_step = self.player_step
+        # game.opponent_step = self.opponent_step     
+        return deepcopy(self)
 
 if __name__ == "__main__":
     game = Game()
