@@ -16,11 +16,11 @@ OUTPLANES_MAP = 64 # kernel number
 # number of self play round to carry before backprop neural network
 PARALLEL_SELF_PLAY = 20
 # mcts playout round, longer playout lead to higher memory leak
-PLAYOUT_ROUND = 100
+PLAYOUT_ROUND = 130
 # how many latest rounds used for training
 SELF_TRAINING_ROUND = 100
 # fixed learning rate
-LR = 0.002
+LR = 0.01
 ## Number of MCTS simulation
 MCTS_SIM = 64
 ## Exploration constant

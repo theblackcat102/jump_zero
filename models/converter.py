@@ -1,6 +1,6 @@
 import os
-os.environ['OPENBLAS_NUM_THREADS'] = '1'
-os.environ['MKL_NUM_THREADS'] = '1'
+# os.environ['OPENBLAS_NUM_THREADS'] = '1'
+# os.environ['MKL_NUM_THREADS'] = '1'
 import pickle
 import numpy as np
 from models.layers import Conv2d, BatchNorm, ReLU, Dense, Softmax, Sigmoid, Layers, Tanh
@@ -130,10 +130,25 @@ class DualResNetNumpy():
         return value, softmax_output
 
     @staticmethod
-    def load_state_from_pytorch(state_dict):
+    def load_state_from_pytorch(state_dict, conv_channel=64):
         # state_dict : ordered dictionary
         # print(state_dict)
-        model = DualResNetNumpy()
+        residual_block_cnt = 0
+        for name, weight in state_dict.items():
+            keys = name.split('.')
+            level = keys[0]
+            module = keys[1] 
+            layer_type = keys[-2]
+            param_type = keys[-1]
+            if level == 'extractor':
+                if module != layer_type:
+                    module_int = int(module[-1])
+                    if layer_type == 'conv2':
+                        if param_type == 'weight':
+                            residual_block_cnt += 1
+
+        print('residual blocks : {}, channel size {}'.format(residual_block_cnt, conv_channel))
+        model = DualResNetNumpy(res_block=residual_block_cnt, conv_channel=conv_channel)
         state = {}
         for name, weight in state_dict.items():
             keys = name.split('.')
@@ -142,7 +157,7 @@ class DualResNetNumpy():
             layer_type = keys[-2]
             param_type = keys[-1]
             # print(name)
-            weight = weight.data.numpy()
+            weight = weight.data.numpy().astype('float32')
             if level == 'extractor':
                 if module != layer_type:
                     module_int = int(module[-1])
@@ -264,14 +279,21 @@ class DualResNetNumpy():
 if __name__ == "__main__":
     import torch, os
     from tqdm import tqdm
-    MODEL_DIR = './checkpoint'
-    checkpoint = torch.load(os.path.join(MODEL_DIR, 'DualResNetv2_4.pt'), map_location='cpu')
-    inputs = np.random.randint(0,1, size=(1, 9, 8, 8))
+    MODEL_DIR = './checkpointv2'
+    checkpoint = torch.load(os.path.join(MODEL_DIR, 'DualResNetv3_13.pt'), map_location='cpu')
 
-    # block = DualResNetNumpy.load_state_from_pytorch(checkpoint['network'])
-    block = DualResNetNumpy(inplanes=9, res_block=5, conv_channel=64)
+
+    block = DualResNetNumpy.load_state_from_pytorch(checkpoint['network'])
+    # block = DualResNetNumpy(inplanes=9, res_block=5, conv_channel=64)
+
+    avg_val = 0
     for i in tqdm(range(1000), total=1000):
-        output, policy = block.forward(inputs)
-    output, policy = block.forward(inputs)
-    print(output)
+        inputs = np.random.randint(0,2, size=(1, 9, 8, 8))
+        inputs[0, -1, :, :] = np.random.choice([1.0, 0.0])
+        value, policy = block.forward(inputs)
+        avg_val += value[0][0]
+
+    print(avg_val/1000)
+    value, policy = block.forward(inputs)
+    print(value)
     print(policy)

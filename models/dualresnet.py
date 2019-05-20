@@ -150,7 +150,7 @@ class ValueNet(nn.Module):
         return winning
 
 class DualResNet(nn.Module):
-    VERSION = 'v1.06'
+    VERSION = 'v1.061'
     VERION_PARAMS = {
         'v1.04': {
             'inplanes': (3 + 1)*2 + 1,

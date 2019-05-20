@@ -52,9 +52,11 @@ However, there is a maximum hop count equal to 99. Any move that includes more t
 
  A player’s move is skipped if he/she makes an invalid move or has no piece remaining on the board. The other player will continue to play. Skipping will also happen when all pieces of a player don’t have any valid move or your program exceeds the time limit(5 second).
 
- The game ends when
+ The game ends when:
 
- Either players have all his/her pieces on the board in the target region, or  Amaximumof200movesperplayerhasbeenplayed.
+     Either players have all his/her pieces on the board in the target region, or 
+
+     A maximum of 200 moves per player has been played.
 
  At the end, the score of a player is the number of pieces placed in the target region. The player with the higher score wins the game.
 The tournament rules are exactly the same as mentioned before.

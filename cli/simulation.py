@@ -31,13 +31,11 @@ except RuntimeError:
 logging.basicConfig(format='%(asctime)s:%(message)s',level=logging.DEBUG)
 
 if __name__ == "__main__":
-    logging.info('start training v3')
+    logging.info('start self play v3')
     cpu = 6
     init_round = 0
-    writer_idx = 0
     load_model = None
     round_limit = 1000
-    lr_multiplier = 1.0
     skip_first = False
     '''
         load_model: model name to load in string
@@ -47,12 +45,7 @@ if __name__ == "__main__":
         log_dir: tensorboard log path
     '''
     # clear previous tensorboard log
-    name = 'DualResNetv3_0.pt'
-    writer_idx = 0
-    l2_const = L2_REG
-    epochs = 1 # number of epoch training
-    batch_size = 256
-    num_iter = writer_idx
+    num_iter = 0
     n_playout = PLAYOUT_ROUND
 
     device = torch.device('cuda' if torch.cuda.is_available() else 'cpu')
@@ -62,12 +55,16 @@ if __name__ == "__main__":
     model = DualResNet()
     model = model.to(device)
     model = model.share_memory()
-    optimizer = optim.Adam(model.parameters(), lr=LR,
-                                    weight_decay=l2_const)
 
     round_count = init_round
     logging.info('Start self play')
     load_model = 'DualResNetv3_{}.pt'.format(round_count)
+    if os.path.isfile(os.path.join(MODEL_DIR, load_model)):
+        logging.info('use preloaded weight at name {}'.format(load_model))
+        checkpoint = torch.load(os.path.join(MODEL_DIR, load_model))
+        model.load_state_dict(checkpoint['network'])
+        round_count += 1
+        load_model = 'DualResNetv3_{}.pt'.format(round_count)
     while True:
         '''
             Self play through MCTS
@@ -80,7 +77,7 @@ if __name__ == "__main__":
             model.eval()
             pool_selfplay(model, cpu, rounds=PARALLEL_SELF_PLAY, n_playout=n_playout)
 
-        if round_count > 10 and n_playout < 180:
+        if round_count > 5 and n_playout < 180:
             n_playout += 5
 
         if os.path.isfile(os.path.join(MODEL_DIR, load_model)):

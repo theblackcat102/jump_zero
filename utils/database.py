@@ -1,5 +1,4 @@
 from datetime import datetime
-from utils.settings import IP
 import os, sys, glob
 import pickle
 # myclient = pymongo.MongoClient("mongodb://{}:27017/".format(IP))

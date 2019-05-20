@@ -51,8 +51,14 @@ def has_won(board, white_step, black_step):
             return 1
         return 2 # tie
 
+    if (white_step + black_step) >= 400:
+        if white_cnt_blk_region == black_cnt_blk_region:
+            return 2 # tie
+        return -1 if white_cnt_blk_region > black_cnt_blk_region else 1 
+      
     if white_cnt_blk_region+black_cnt_blk_region == 0:
         return 0
+
     # End Game 1: Either player has all his/her pieces on the board in the target region
     # End game 2: A maximum of 200 moves per player has been played
     if (-1 in result and result[-1] == white_cnt_blk_region) or \

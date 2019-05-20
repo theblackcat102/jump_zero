@@ -48,7 +48,7 @@ def clean_gpu_cache():
         torch.cuda.set_device(gpu_id)
         torch.cuda.empty_cache()
 
-def train_model(model, optimizer, round_count, num_iter, writer, device, epochs=1, batch_size=128, kl_target=0.02,lr_multiplier = 1.0, lr=LR):
+def train_model(model, optimizer, round_count, num_iter, writer, device, epochs=1, batch_size=128, kl_target=0.1, lr_multiplier = 1.0, lr=LR):
     dataloader = torch.utils.data.DataLoader(
         GameDataset('beta', model.VERSION, training_round=SELF_TRAINING_ROUND),
         batch_size=batch_size, shuffle=True)
@@ -88,7 +88,7 @@ def train_model(model, optimizer, round_count, num_iter, writer, device, epochs=
                 writer.add_scalar('value_loss', value_loss, num_iter)
                 writer.add_scalar('total_loss', loss, num_iter)
                 writer.add_scalar('entropy', entropy, num_iter)
-                writer.add_scalar('learning_rate', min(lr*lr_multiplier, 0.01), num_iter)
+                writer.add_scalar('learning_rate', max(min(lr*lr_multiplier, 0.01), 0.0001), num_iter)
 
                 new_softmax, _ = model(feature)
                 new_softmax_np = new_softmax.cpu().detach().numpy()
@@ -101,9 +101,9 @@ def train_model(model, optimizer, round_count, num_iter, writer, device, epochs=
                 #     break
             # adaptively adjust the learning rate
         if kl > kl_target * 2 and lr_multiplier > 0.1:
-            lr_multiplier /= 1.5
+            lr_multiplier /= 1.2
         elif kl < kl_target / 2 and lr_multiplier < 10:
-            lr_multiplier *= 1.5
+            lr_multiplier *= 1.2
 
     return model, optimizer, num_iter, lr_multiplier
 
@@ -118,11 +118,11 @@ if __name__ == "__main__":
     cpu = CPU_COUNT
     init_round = 0
     writer_idx = 0
-    log_dir='./log/v6.0_%s'
-    load_model = None
+    log_dir='./log/v6.1_%s'
+    load_model = None #'DualResNetv3_14.pt'
     round_limit = 1000
-    lr_multiplier = 1.0
-    skip_first = False
+    lr_multiplier = 1.0 # default =1
+    skip_first = True
     '''
         load_model: model name to load in string
         cpu: total multiprocessing core to use
@@ -158,6 +158,7 @@ if __name__ == "__main__":
         round_count = checkpoint['round']+1
         if 'tensorboard_iter' in checkpoint:
             num_iter = checkpoint['tensorboard_iter']
+            logging.info('Resume at iteration {}'.format(num_iter))
         else:
             shutil.rmtree(log_dir % name, ignore_errors=True)
     else:
@@ -178,8 +179,8 @@ if __name__ == "__main__":
             model.eval()
             pool_selfplay(model, cpu, rounds=PARALLEL_SELF_PLAY, n_playout=n_playout)
 
-        if round_count > 10 and n_playout < 180:
-            n_playout += 5
+        # if round_count > 10 and n_playout < 160:
+        #     n_playout += 5
         '''
             Backpropagation using self play MCTS
         '''
