@@ -3,8 +3,6 @@
 BOARD_WIDTH = 8
 BOARD_HEIGHT = 8
 
-C_PUCT = 4.0
-
 HISTORY_RECORDS = 3
 
 BLOCKS = 5 # number of residual block
@@ -18,7 +16,7 @@ PARALLEL_SELF_PLAY = 20
 # mcts playout round, longer playout lead to higher memory leak
 PLAYOUT_ROUND = 120
 # how many latest rounds used for training
-SELF_TRAINING_ROUND = 100
+SELF_TRAINING_ROUND = 60
 # fixed learning rate
 LR = 0.01
 ## Number of MCTS simulation
@@ -34,7 +32,7 @@ MCTS_FLAG = True
 ## Epsilon for Dirichlet noise
 EPS = 0.3
 ## Alpha for Dirichlet noise
-ALPHA = 0.03
+ALPHA = 0.05
 ## Batch size for evaluation during MCTS
 BATCH_SIZE_EVAL = 2
 ## Number of self-play before training

@@ -150,7 +150,7 @@ class ValueNet(nn.Module):
         return winning
 
 class DualResNet(nn.Module):
-    VERSION = 'v1.061'
+    VERSION = 'v1.061-2'
     VERION_PARAMS = {
         'v1.04': {
             'inplanes': (3 + 1)*2 + 1,
@@ -168,7 +168,14 @@ class DualResNet(nn.Module):
             'inplanes': (3 + 1)*2 + 1,
             'blocks': 3,
             'history': 3,
-            'outplanes_map': 128,
+            'outplanes_map': 64,
+            'description': 'adaptive learning based on KL div',
+        },
+        'v1.061': {
+            'inplanes': (3 + 1)*2 + 1,
+            'blocks': 3,
+            'history': 3,
+            'outplanes_map': 64,
             'description': 'adaptive learning based on KL div',
         }
     }
@@ -200,9 +207,9 @@ class DualResNet(nn.Module):
 
         legal_moves = game.legal_move()
         actions = []
-        for (next_board, start_point, end_point, eaten ) in legal_moves:
+        for (next_board, start_point, end_point, eaten_points ) in legal_moves:
             prob = probability[start_point[0]][start_point[1]][end_point[0]][end_point[1]]
-            actions.append((next_board, prob, start_point, end_point, eaten))
+            actions.append((next_board, prob, start_point, end_point, eaten_points))
         return actions, prediction
 
 def alpha_loss(log_predict_softmax, mcts_softmax, predict_value, mcts_value):

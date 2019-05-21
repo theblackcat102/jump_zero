@@ -11,6 +11,7 @@ from tqdm import tqdm
 from models.dualresnet import DualResNet, alpha_loss, set_learning_rate
 from utils.game import Game
 from utils.mcts import MCTS
+from pure_mcts.mcts import MCTS as PureMCTS
 from utils.settings import ( 
     EPS, ALPHA, PLAYOUT_ROUND, PARALLEL_SELF_PLAY, 
     MODEL_DIR, LR, SELF_TRAINING_ROUND, L2_REG, CPU_COUNT
@@ -54,82 +55,68 @@ def simulation(mcts1, mcts2, start_color=1):
     # do not set gradient to zero using with notation
     idx = 0
 
-    mcts2.get_action(game.copy())
-    mcts1.get_action(game.copy())
-
-    logging.info('Step: {}, current player: {}\nBoard: \n{}'.format(idx, game.current, game.board ))    
+    logging.info('Step: {}, current player: {}\nBoard: \n{}'.format(idx, game.current, game.board ))
     for _ in range(401):
 
         # Player 1 first action
-        step = mcts1.get_action(game.copy())
+        step = mcts1.get_action(game.copy(), temp=1)
         logging.info('Step: {}, current player: {}\nBoard: \n{}'.format(idx, game.current, step ))
         end, winner, reward = game.update_state(np.copy(step))
         mcts2.update_with_move(step)
-        # print('Updated board:\n{}'.format(game.board - step))
+
         if end:
-            logging.info('Player 1 has won!')
+            if winner == 1:
+                logging.info('Player 1 has won!')
+            elif winner == -1:
+                logging.info('Player 2 has won!')
+            else:
+                logging.info('Its a Tie')
             break
 
         # Player 2 take action
-        step = mcts2.get_action(game.copy())
+        step = mcts2.get_action(game.copy(), temp=1)
         logging.info('Step: {}, current player: {}\nBoard: \n{}'.format(idx, game.current, step ))
         end, winner, reward = game.update_state(np.copy(step))
         mcts1.update_with_move(step)
-        # print('Updated board:\n{}'.format(game.board - step))
+
         if end:
-            logging.info('Player 2 has won!')
+            if winner == 1:
+                logging.info('Player 1 has won!')
+            elif winner == -1:
+                logging.info('Player 2 has won!')
+            else:
+                logging.info('Its a Tie')
             break
+
         idx += 1
-        if idx > 3:
-            mcts1._n_playout = 64
-            mcts2._n_playout = 64
 
 
 
 # train_pool = Pool()
 
 if __name__ == "__main__":
-    logging.info('start training v3')
-    # model_name = 'DualResNet_2.pt'
-    # train_selfplay(load_model=None, 
-    #     cpu=10, init_round=0, log_dir='./log/v3_%s', 
-    #     skip_first=False)
-    cpu = CPU_COUNT
-    init_round = 0
-    writer_idx = 0
-    log_dir='./log/v6.1_%s'
-    load_model1 = 'DualResNetv3_16.pt' #'DualResNetv3_14.pt'
-    load_model2 = 'DualResNetv3-1_6.pt' #'DualResNetv3_14.pt'
-    round_limit = 1000
-    lr_multiplier = 1.0 # default =1
-    skip_first = False
-    '''
-        load_model: model name to load in string
-        cpu: total multiprocessing core to use
-        round_limit: total self play round to run
-        init_round: initial run, use for checkpoint 
-        log_dir: tensorboard log path
-    '''
+    logging.info('start self play mode')
+    # log_dir='./log/v6.1_%s'
+    check_point_dir = './v1.60'
+    # check_point_dir = './checkpointv2'
+    load_model1 = 'DualResNetv3_69.pt' #'DualResNetv3_14.pt'
+    load_model2 = 'DualResNetv3_52.pt' #'DualResNetv3_14.pt'
     # clear previous tensorboard log
-    n_playout = 64
-    num_iter = writer_idx
-    n_playout = PLAYOUT_ROUND
-
-    round_count = init_round
 
     model1 = DualResNet()
     logging.info('Load checkpoint model')
-    checkpoint = torch.load(os.path.join('./v1.60', load_model1), map_location='cpu')
+    checkpoint = torch.load(os.path.join(check_point_dir, load_model1), map_location='cpu')
     model1.load_state_dict(checkpoint['network'])
+    model1.eval()
 
     model2 = DualResNet()
-    checkpoint = torch.load(os.path.join('./v1.60', load_model2), map_location='cpu')
+    checkpoint = torch.load(os.path.join(check_point_dir, load_model2), map_location='cpu')
     model2.load_state_dict(checkpoint['network'])
-
+    model2.eval()
 
     logging.info('Start self play')
-
+    n_playout = 280
     mcts1 = MCTS(model1.policyvalue_function, n_playout=n_playout, self_play=False)
     mcts2 = MCTS(model2.policyvalue_function, n_playout=n_playout, self_play=False)
-
-    simulation(mcts1, mcts2)
+    pure_mcts = PureMCTS(n_playout=40)
+    simulation(mcts1, pure_mcts)

@@ -18,12 +18,14 @@ from utils.settings import (
 import logging
 from utils.rules import has_won
 from utils.database import Collection
-from models.dataloader import GameDataset
+from models.dataloaderv2 import GameDataset
 from cli.train import single_self_play, multiprocessing_selfplay, pool_selfplay
 # os.makedirs(MODEL_DIR, safe=True)
 
 logging.basicConfig(format='%(asctime)s:%(message)s',level=logging.WARNING)
-
+'''
+Ignore tie value
+'''
 
 try:
     set_start_method('forkserver',force=True)
@@ -50,7 +52,7 @@ def clean_gpu_cache():
 
 def train_model(model, optimizer, round_count, num_iter, writer, device, epochs=1, batch_size=128, kl_target=0.1, lr_multiplier = 1.0, lr=LR):
     dataloader = torch.utils.data.DataLoader(
-        GameDataset('beta', model.VERSION, training_round=20, balance_value=False),
+        GameDataset('beta', model.VERSION, training_round=40, balance_value=True),
         batch_size=batch_size, shuffle=True)
     loss = {}
     batch_num = len(dataloader) // batch_size
@@ -118,7 +120,7 @@ if __name__ == "__main__":
     cpu = 4
     init_round = 0
     writer_idx = 0
-    log_dir='./log/v6.1_%s'
+    log_dir='./log/v6.2_%s'
     load_model = None #'DualResNetv3_14.pt'
     round_limit = 1000
     lr_multiplier = 1.0 # default =1
@@ -146,6 +148,7 @@ if __name__ == "__main__":
     model = DualResNet()
     model = model.to(device)
     model = model.share_memory()
+    model.VERSION = 'v1.611'
     optimizer = optim.Adam(model.parameters(), lr=LR,
                                     weight_decay=l2_const)
 
@@ -186,7 +189,7 @@ if __name__ == "__main__":
             Backpropagation using self play MCTS
         '''
         model, optimizer, num_iter, lr_multiplier = train_model(model, optimizer, round_count, num_iter, writer,device, batch_size=batch_size, lr_multiplier=lr_multiplier)
-        save(model, optimizer, round_count, 'DualResNetv3-1_{}.pt'.format(round_count), num_iter+1)
+        save(model, optimizer, round_count, 'DualResNetv3-2_{}.pt'.format(round_count), num_iter+1)
         round_count += 1
         if round_count > round_limit:
             break

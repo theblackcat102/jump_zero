@@ -35,7 +35,7 @@ def single_self_play(process_rank, model, n_playout=PLAYOUT_ROUND, start_color=1
         memory_limit(25*1024*1024*1024)
         # time_limit(900) # cannot time limit when using process pool
         # do not set gradient to zero using with notation
-        mcts = MCTS(model.policyvalue_function, initial_player=start_color, n_playout=n_playout)
+        mcts = MCTS(model.policyvalue_function, n_playout=n_playout)
         for _ in range(401):
             acts, probability, mcts_softmax = mcts.get_move_visits(game.copy(), temperature=temp)
             # pick a random move

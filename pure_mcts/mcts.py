@@ -1,17 +1,17 @@
 import numpy
 import numpy as np
-from rules import *
-from game import init_board
-from settings import *
+from pure_mcts.rules import *
+from pure_mcts.game import init_board
+from pure_mcts.settings import *
 from tqdm import tqdm
 
 def policyvalue_function(game):
     legal_moves = next_steps(game.board, game.current)
     probability = 1.0 / len(legal_moves)
     actions = []
-    for (next_board, start_point, end_point) in legal_moves:
+    for (next_board, start_point, end_point, eaten) in legal_moves:
         prob = probability
-        actions.append((next_board, prob, start_point, end_point))
+        actions.append((next_board, prob, start_point, end_point, eaten))
     return actions
 
 def random_rollout(available_steps):
@@ -27,14 +27,15 @@ class TreeNode(object):
     A node in the MCTS tree. Each node keeps track of its own value Q,
     prior probability P, and its visit-count-adjusted prior score u.
     '''
-    __slots__ = ('_parent', '_children', '_n_visits', 'start', 'end', '_Q', '_u', '_P')
+    __slots__ = ('_parent', '_children', '_n_visits', 'start', 'end', 'eaten', '_Q', '_u', '_P')
 
-    def __init__(self, parent, prior_p, start=None, end=None):
+    def __init__(self, parent, prior_p, start=None, end=None, eaten=0):
         self._parent = parent
         self._children = {}  # a map from action to TreeNode
         self._n_visits = 0
         self.start = start
         self.end = end
+        self.eaten = eaten
         self._Q = 0
         self._u = 0
         self._P = prior_p # value policy output
@@ -46,13 +47,14 @@ class TreeNode(object):
         action_priors: a list of tuples of actions and their prior probability
         according to the policy function.
         '''
-        for (board, prob, start, end) in actions:
+        for (board, prob, start, end, eaten) in actions:
             board_str = board.tostring()
             if board_str not in self._children:
                 self._children[board_str] = TreeNode(parent=self, 
                     prior_p=prob,
                     start=start,
-                    end=end)
+                    end=end,
+                    eaten=eaten)
         # expand all children that under this state
 
     def select(self, c_puct):
@@ -128,8 +130,9 @@ class MCTS:
         # traverse until the leaf node
         end = False
         reward, depth = 0, 0
-        
-        while True:
+        current_color = game.current
+
+        for _ in range(401):
             if node.is_leaf() or depth > 400:
                 break
             # Greedily select next move.
@@ -142,15 +145,17 @@ class MCTS:
         if not end:
             probability = self._policy(game)
             node.expand(probability)
-
+            total_eaten = 0
             for _ in range(401):
                 moves = game.legal_move()
                 action_probs = np.random.rand(len(moves))
                 best_move_idx = np.argmax(action_probs)
-                selected_rand_mv, _, _ = moves[best_move_idx]
-                #print(selected_rand_mv)
+                selected_rand_mv, _, _, eat_point = moves[best_move_idx]
+                if game.current == current_color:
+                    total_eaten += eat_point
                 end, _, reward = game.update_state(selected_rand_mv)
                 if end:
+                    reward += total_eaten
                     break
             else:
                 if not end:
@@ -177,8 +182,18 @@ class MCTS:
 
         visits = []
         for node_key, node in self._root._children.items():
-            visits.append((np.fromstring(node_key, dtype=int).reshape(BOARD_WIDTH, BOARD_HEIGHT), node._n_visits, node.start, node.end))
-        acts, visits, _, _ = zip(*visits)
+            visits.append((np.fromstring(node_key, dtype=int).reshape(BOARD_WIDTH, BOARD_HEIGHT), node._n_visits+(node.eaten), node.start, node.end))
+        acts, visits, starts, ends = zip(*visits)
+
+        current_color = state.current
+        visits = list(visits)
+        for idx in range(len(visits)):
+            y_diff = starts[idx][1] - ends[idx][1]
+            if y_diff < 0 and current_color == 1:
+                visits[idx] += 1
+            if y_diff > 0 and current_color == -1:
+                visits[idx] += 1
+
         return acts, visits
 
     def get_action(self, game, temp=1e-3, return_prob=0):
@@ -191,7 +206,7 @@ class MCTS:
         step = acts[np.argmax(probability)]
         for ii in range(len(acts)):
             unique, counts = np.unique(acts[ii]-game.board, return_counts=True)
-            print(unique, counts, probability[ii])
+            # print(unique, counts, probability[ii])
         return step
 
 
@@ -199,14 +214,14 @@ class MCTS:
         """Step forward in the tree, keeping everything we already know
         about the subtree.
         """
-        if isinstance(new_move, str) is False:
+        if isinstance(new_move, int):
+            new_move = str(new_move)
+        elif isinstance(new_move, str) is False:
             new_move = new_move.tostring()
 
         if new_move in self._root._children:
             self._root = self._root._children[new_move]
             self._root._parent = None
         else:
-            print('reset')
-            # maybe act as reset?
             self._root = TreeNode(None, 1.0)
 

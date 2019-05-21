@@ -30,14 +30,15 @@ class TreeNode(object):
     A node in the MCTS tree. Each node keeps track of its own value Q,
     prior probability P, and its visit-count-adjusted prior score u.
     '''
-    __slots__ = ('_parent', '_children', '_n_visits', 'start', 'end', '_Q', '_u', '_P')
+    __slots__ = ('_parent', '_children', '_n_visits', 'start', 'end','eaten', '_Q', '_u', '_P')
 
-    def __init__(self, parent, prior_p, start=None, end=None):
+    def __init__(self, parent, prior_p, start=None, end=None, eaten=0):
         self._parent = parent
         self._children = {}  # a map from action to TreeNode
         self._n_visits = 0
         self.start = start
         self.end = end
+        self.eaten = eaten
         self._Q = 0
         self._u = 0
         self._P = prior_p # value policy output
@@ -49,13 +50,14 @@ class TreeNode(object):
         action_priors: a list of tuples of actions and their prior probability
         according to the policy function.
         '''
-        for (board, prob, start, end) in actions:
+        for (board, prob, start, end, eaten) in actions:
             board_str = board.tostring()
             if board_str not in self._children:
                 self._children[board_str] = TreeNode(parent=self, 
                     prior_p=prob,
                     start=start,
-                    end=end)
+                    end=end,
+                    eaten=eaten)
         # expand all children that under this state
 
     def select(self, c_puct):
@@ -146,6 +148,7 @@ class MCTS:
             probability, prediction = self._policy(game)
             node.expand(probability)
             value = prediction
+            # value *= (node.eaten+1)
         del game
         # backpropagation
         node.update_recursive(-value) # why negative ?
@@ -156,6 +159,7 @@ class MCTS:
         their corresponding visiting times.
         state: the current game instance
         '''
+        current_color = state.current
         # number of simulation to run
         for _ in range(self._n_playout):
             self._playout(state.copy())
@@ -170,6 +174,13 @@ class MCTS:
         acts, visits, starts, ends = zip(*visits)
 
         # convert visits 
+        visits = list(visits)
+        for idx in range(len(visits)):
+            y_diff = starts[idx][1] - ends[idx][1]
+            if y_diff < 0 and current_color == 1:
+                visits[idx] += 1
+            if y_diff > 0 and current_color == -1:
+                visits[idx] += 1
 
         act_probs = softmax(1.0/temperature * np.log(np.array(visits) + 1e-10))
         # we will use save this for later
@@ -193,7 +204,9 @@ class MCTS:
         """Step forward in the tree, keeping everything we already know
         about the subtree.
         """
-        if isinstance(new_move, str) is False:
+        if isinstance(new_move, int):
+            new_move = str(new_move)
+        elif isinstance(new_move, str) is False:
             new_move = new_move.tostring()
 
         if new_move in self._root._children:

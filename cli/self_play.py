@@ -69,7 +69,7 @@ def train_model(model, optimizer, round_count, num_iter, writer, device, epochs=
                 mcts_softmax = batch['softmax'].to(device, dtype=torch.float)
                 value = batch['value'].to(device, dtype=torch.float)
                 optimizer.zero_grad()
-                set_learning_rate(optimizer, max(min(lr*lr_multiplier, 0.01), 0.0001) )
+                set_learning_rate(optimizer, max(min(lr*lr_multiplier, 0.01), 0.001) )
 
                 log_pred_softmax, pred_value = model(feature)
                 value_loss, policy_loss, loss = alpha_loss(log_pred_softmax, mcts_softmax, pred_value, value)
@@ -87,7 +87,7 @@ def train_model(model, optimizer, round_count, num_iter, writer, device, epochs=
                 writer.add_scalar('value_loss', value_loss, num_iter)
                 writer.add_scalar('total_loss', loss, num_iter)
                 writer.add_scalar('entropy', entropy, num_iter)
-                writer.add_scalar('learning_rate', max(min(lr*lr_multiplier, 0.01), 0.0001), num_iter)
+                writer.add_scalar('learning_rate', max(min(lr*lr_multiplier, 0.01), 0.001), num_iter)
 
                 new_softmax, _ = model(feature)
                 new_softmax_np = new_softmax.cpu().detach().numpy()
@@ -118,9 +118,9 @@ if __name__ == "__main__":
     init_round = 0
     writer_idx = 0
     log_dir='./log/v6.1_%s'
-    load_model = None #'DualResNetv3_14.pt'
+    load_model = 'DualResNetv3_44.pt'
     round_limit = 1000
-    lr_multiplier = 1.0 # default =1
+    lr_multiplier = 0.1 # default =1
     skip_first = False
     '''
         load_model: model name to load in string

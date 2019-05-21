@@ -1,6 +1,6 @@
 import numpy as np
-from rules import *
-from settings import *
+from pure_mcts.rules import *
+from pure_mcts.settings import *
 
 init_board = np.array([[ 1, 0, 0, 0, 0, 0, 0, 0], 
                 [ 0, 1, 0, 0, 0, 0, 0,-1],
@@ -22,7 +22,6 @@ class Game:
         self.current = player
         self.history = []
         self.player_step = 0
-        self.availables = next_steps(self.board, player)
         self.opponent_step = 0
 
     def update_state(self, board):
@@ -48,7 +47,7 @@ class Game:
         return end, winner, reward
 
     def legal_move(self):
-        return next_steps(self.board.astype('int'), self.current)
+        return next_steps(self.board.copy().astype('int'), self.current)
 
     def reward_function(self, winner):
         if winner == self.player:
