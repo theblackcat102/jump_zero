@@ -2,14 +2,14 @@ import numpy as np
 from pure_mcts.rules import *
 from pure_mcts.settings import *
 
-init_board = np.array([[ 1, 0, 0, 0, 0, 0, 0, 0], 
-                [ 0, 1, 0, 0, 0, 0, 0,-1],
-                [ 1, 0, 1, 0, 0, 0,-1, 0],
-                [ 0, 1, 0, 0, 0,-1, 0,-1],
-                [ 1, 0, 1, 0, 0, 0,-1, 0],
-                [ 0, 1, 0, 0, 0,-1, 0,-1],
-                [ 1, 0, 0, 0, 0, 0,-1, 0],
-                [ 0, 0, 0, 0, 0, 0, 0,-1], ])
+init_board = np.array([[ 1, 0, 0, 0, 0, 0, 0, 0],
+                        [ 0, 1, 0, 0, 0, 0, 0, 2],
+                        [ 1, 0, 1, 0, 0, 0, 2, 0],
+                        [ 0, 1, 0, 0, 0, 2, 0, 2],
+                        [ 1, 0, 1, 0, 0, 0, 2, 0],
+                        [ 0, 1, 0, 0, 0, 2, 0, 2],
+                        [ 1, 0, 0, 0, 0, 0, 2, 0],
+                        [ 0, 0, 0, 0, 0, 0, 0, 2]])
 STORE_HISTORY = (HISTORY_RECORDS+1)*2
 class Game:
 
@@ -17,7 +17,7 @@ class Game:
         # initial board placement
         self.board = init_board
         self.player = player
-        self.opponent = 1 if player == -1 else -1
+        self.opponent = 1 if player == 2 else 2
         # 1(black) always start first
         self.current = player
         self.history = []
@@ -36,11 +36,11 @@ class Game:
 
         check_state = has_won(self.board, self.opponent_step, self.player_step)
         # switch side
-        self.current = 1 if self.current == -1 else -1
+        self.current = 1 if self.current == 2 else 2
         end = False
         winner = check_state
         reward = 0
-        if check_state != 0: # tie=2, win=1, lose=-1
+        if check_state != 0: # tie=3, win=1, lose=-2
             end = True
             winner = check_state # -1 is white, 1 is black
             reward = self.reward_function(winner)
@@ -52,7 +52,7 @@ class Game:
     def reward_function(self, winner):
         if winner == self.player:
             return 1
-        elif winner == 2: # draw
+        elif winner == 3: # draw
             return 0.0
         return -1
 
@@ -66,7 +66,7 @@ class Game:
         game = Game(self.player)
         game.board = np.copy(self.board)
         game.player = self.player
-        game.opponent = 1 if self.player == -1 else -1
+        game.opponent = 1 if self.player == 2 else 2
         # 1(black) always start first
         game.current = self.current
         # game.history = self.history

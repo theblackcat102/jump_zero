@@ -1,9 +1,6 @@
-import numpy
-import numpy as np
 from pure_mcts.rules import *
-from pure_mcts.game import init_board
 from pure_mcts.settings import *
-from tqdm import tqdm
+
 
 def policyvalue_function(game):
     legal_moves = next_steps(game.board, game.current)
@@ -14,12 +11,6 @@ def policyvalue_function(game):
         actions.append((next_board, prob, start_point, end_point, eaten))
     return actions
 
-def random_rollout(available_steps):
-    # we will not bother to normalize this, since we just select the max ones
-    return np.random.rand(available_steps)
-
-def uniform_probability_steps(available_steps):
-    return np.array(np.ones(available_steps)/available_steps)
 
 class TreeNode(object):
     '''
@@ -110,7 +101,6 @@ class TreeNode(object):
 
 
 class MCTS:
-
     def __init__(self, policy_value_fn=policyvalue_function, initial_player=1, c_puct=C_PUCT, n_playout=PLAYOUT_ROUND, self_play=True):
         self._root = TreeNode(parent=None, prior_p=1.0, start=(0, 0), end=(0, 0) )
         self._c_puct = c_puct
@@ -124,7 +114,6 @@ class MCTS:
         state is a game instance
         ref : https://medium.com/@quasimik/implementing-monte-carlo-tree-search-in-node-js-5f07595104df
         '''
-        #print(game)
         # 1. selection
         node = self._root
         # traverse until the leaf node
@@ -175,15 +164,13 @@ class MCTS:
         # number of simulation to run
         for _ in range(self._n_playout):
             self._playout(state.copy())
-        #print('finish playout')
-        #print(state.board)
         if len(self._root._children) == 0:
             raise ValueError('no steps found')
 
         visits = []
         for node_key, node in self._root._children.items():
-            visits.append((np.fromstring(node_key, dtype=int).reshape(BOARD_WIDTH, BOARD_HEIGHT), node._n_visits+(node.eaten), node.start, node.end))
-        acts, visits, starts, ends = zip(*visits)
+            visits.append((np.fromstring(node_key, dtype=int).reshape(BOARD_WIDTH, BOARD_HEIGHT), node._n_visits+(node.eaten), node.start, node.end, node.eaten))
+        acts, visits, starts, ends, eaten = zip(*visits)
 
         current_color = state.current
         visits = list(visits)
@@ -191,24 +178,24 @@ class MCTS:
             y_diff = starts[idx][1] - ends[idx][1]
             if y_diff < 0 and current_color == 1:
                 visits[idx] += 1
-            if y_diff > 0 and current_color == -1:
+            if y_diff > 0 and current_color == 2:
                 visits[idx] += 1
 
-        return acts, visits
+        return acts, visits, starts, ends, eaten
 
     def get_action(self, game, temp=1e-3, return_prob=0):
-        acts, probability = self.get_move_visits(game.copy(), temperature=temp)
+        acts, probability, starts, ends, eaten = self.get_move_visits(game.copy(), temperature=temp)
         # pick a random move
         if len(probability) == 0:
             print(game.board)
             raise ValueError('No legal move found')
-        
-        step = acts[np.argmax(probability)]
-        for ii in range(len(acts)):
-            unique, counts = np.unique(acts[ii]-game.board, return_counts=True)
-            # print(unique, counts, probability[ii])
-        return step
 
+        max_probability_index = np.argmax(probability)
+        step = acts[max_probability_index]
+        start = starts[max_probability_index]
+        end = ends[max_probability_index]
+        eat = eaten[max_probability_index]
+        return step, start, end, eat
 
     def update_with_move(self, new_move):
         """Step forward in the tree, keeping everything we already know
