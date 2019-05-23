@@ -6,10 +6,9 @@ Input your move in the format: 2,3
 @author: Junxiao Song
 """
 
-from __future__ import print_function
-from pure_mcts.game import Game
-from pure_mcts.rules import get_all_move
-from pure_mcts.mcts import MCTS as MCTS_Pure
+from game import Game
+from rules import get_all_move
+from mcts import MCTS as MCTS_Pure
 
 
 def start_play(player1, player2, board_input,init_playout=60, start_player=1):

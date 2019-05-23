@@ -1,6 +1,5 @@
+from rules import *
 import numpy as np
-from pure_mcts.rules import *
-from pure_mcts.settings import *
 
 init_board = np.array([[ 1, 0, 0, 0, 0, 0, 0, 0],
                         [ 0, 1, 0, 0, 0, 0, 0, 2],
@@ -10,7 +9,8 @@ init_board = np.array([[ 1, 0, 0, 0, 0, 0, 0, 0],
                         [ 0, 1, 0, 0, 0, 2, 0, 2],
                         [ 1, 0, 0, 0, 0, 0, 2, 0],
                         [ 0, 0, 0, 0, 0, 0, 0, 2]])
-STORE_HISTORY = (HISTORY_RECORDS+1)*2
+
+
 class Game:
 
     def __init__(self, player=1):
@@ -25,8 +25,6 @@ class Game:
         self.opponent_step = 0
 
     def update_state(self, board):
-        self.history.append(self.board)
-        self.history = self.history[-STORE_HISTORY:]
         self.board = np.copy(board).astype('int')
 
         if self.current == self.player:

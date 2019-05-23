@@ -1,5 +1,5 @@
-from pure_mcts.rules import *
-from pure_mcts.settings import *
+from rules import *
+from settings import *
 
 
 def policyvalue_function(game):

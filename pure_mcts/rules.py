@@ -1,5 +1,7 @@
 import numpy as np
-from pure_mcts.settings import BOARD_WIDTH, BOARD_HEIGHT, HISTORY_RECORDS
+
+BOARD_WIDTH = 8
+BOARD_HEIGHT = 8
 
 
 def check_boundary(points):
