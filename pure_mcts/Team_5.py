@@ -1,3 +1,7 @@
+import os
+
+os.environ['OPENBLAS_NUM_THREADS'] = '1'
+os.environ['MKL_NUM_THREADS'] = '1'
 
 import STcpClient
 import numpy as np
@@ -15,7 +19,9 @@ from mcts import MCTS as MCTS_Pure
             r1, c1 表示要移動的棋子座標 (row, column) (zero-base)
             ri, ci (i>1) 表示該棋子移動路徑
 '''
-
+step_count  = 0
+game = Game()
+mcts_player_1 = MCTS_Pure(c_puct=5, n_playout=35)
 
 def GetStep(board, is_black):
     # fill your program here
@@ -33,13 +39,18 @@ def GetStep(board, is_black):
     return step
     pass
 
-
-game = Game()
-mcts_player_1 = MCTS_Pure(c_puct=5, n_playout=42)
 while(True):
     (stop_program, id_package, board, is_black) = STcpClient.GetBoard()
     if(stop_program):
         break
-    
+    np_board = np.asarray(board, dtype=int)
+    unique, count = np.unique(np_board.flatten(), return_counts=True)
+    stats = dict(zip(unique, count))
+    current_number = 1 if is_black else 2
+    if current_number in stats:
+        piece_count = stats[current_number]
+        mcts_player_1._n_playout = max(min(280//piece_count, 80), 32)
+
     listStep = GetStep(board, is_black)
+    step_count += 1
     STcpClient.SendStep(id_package, listStep)

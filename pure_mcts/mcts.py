@@ -136,6 +136,7 @@ class MCTS:
             probability = self._policy(game)
             node.expand(probability)
             total_eaten = 0
+            eaten_by_opponent  = 0
             reward = 0
             for _ in range(401):
                 moves = game.legal_move()
@@ -145,10 +146,12 @@ class MCTS:
                 best_move_idx = np.argmax(action_probs)
                 selected_rand_mv, _, _, eat_point = moves[best_move_idx]
                 if game.current == current_color:
-                    total_eaten += (eat_point*10)
+                    total_eaten += (eat_point*1.01)
+                else:
+                    eaten_by_opponent += (eat_point * 1.01)
                 end, _, reward = game.update_state(selected_rand_mv)
                 if end:
-                    # reward += total_eaten
+                    reward += (total_eaten-eaten_by_opponent)
                     break
             else:
                 if not end:
@@ -192,7 +195,7 @@ class MCTS:
             if starts[idx][1] == 7 and current_color == 1:
                 visits[idx] += 15
             if eaten[idx] > 0:
-                visits[idx] += 500
+                visits[idx] += 100
 
         return acts, visits, starts, ends, eaten
 
