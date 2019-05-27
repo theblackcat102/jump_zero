@@ -165,14 +165,24 @@ def next_steps(board, move=1):
             if int(board[x][y]) == move:
                 possible_step.extend(hop_board((x, y), (x, y), (x, y), board.copy(), move, (x, y), 0, 1, 'N', {}))
                 # check basic four step (R, L, U, D)
-                possible_step.extend(point_within_boundary((x, y), (x + 1, y), board.copy(), move))  # right
-                possible_step.extend(point_within_boundary((x, y), (x - 1, y), board.copy(), move))  # left
+                # possible_step.extend(point_within_boundary((x, y), (x + 1, y), board.copy(), move))  # right
+                # possible_step.extend(point_within_boundary((x, y), (x - 1, y), board.copy(), move))  # left
                 possible_step.extend(point_within_boundary((x, y), (x, y + 1), board.copy(), move))  # up
                 possible_step.extend(point_within_boundary((x, y), (x, y - 1), board.copy(), move))  # down
     return possible_step  # list of  8x8 matrix
 
 
 if __name__ == "__main__":
+    test = np.array([[1, 0, 0, 0, 0, 0, 0, 0],
+                     [1, 0, 0, 0, 0, 0, 0, 0],
+                     [1, 0, 0, 1, 0, 1, 0, 0],
+                     [0, 0, 0, 0, 1, 0, 0, 1],
+                     [1, 0, 0, 0, 2, 0, 0, 0],
+                     [0, 0, 0, 0, 0, 2, 0, 2],
+                     [1, 0, 0, 0, 0, 0, 2, 0],
+                     [0, 0, 0, 0, 0, 0, 0, 2], ])
+    print(next_steps(test, 1))
+
     test = np.array([[0, 0, 0, 0, 0, 0, 0, 0],
                      [1, 0, 0, 0, 0, 0, 0, 0],
                      [1, 1, 1, 0, 0, 0, 2, 0],

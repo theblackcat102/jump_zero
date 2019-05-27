@@ -23,8 +23,10 @@ def start_play(player1, player2, board_input,init_playout=60, start_player=1):
         print('Curent board:')
         print(board_input.board)
         player_in_turn = players.get(board_input.current)
+        player_in_turn.update_with_move(board_input.board)
         move, start, end, eaten = player_in_turn.get_action(board_input.copy())
-        player_in_turn.update_with_move(-1)
+        player_in_turn.update_with_move(board_input.board)
+
         print('player {} move: '.format(board_input.current))
         step = [list(start), list(end)]
         print('Start: {}'.format(start))

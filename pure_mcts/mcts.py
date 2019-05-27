@@ -102,6 +102,7 @@ class TreeNode(object):
 
 class MCTS:
     def __init__(self, policy_value_fn=policyvalue_function, initial_player=1, c_puct=C_PUCT, n_playout=PLAYOUT_ROUND, self_play=True):
+        print('intialize mcts')
         self._root = TreeNode(parent=None, prior_p=1.0, start=(0, 0), end=(0, 0) )
         self._c_puct = c_puct
         self._policy = policy_value_fn # output list of (move, prob), and envaluation value
@@ -135,16 +136,19 @@ class MCTS:
             probability = self._policy(game)
             node.expand(probability)
             total_eaten = 0
+            reward = 0
             for _ in range(401):
                 moves = game.legal_move()
+                if len(moves) == 0:
+                    break
                 action_probs = np.random.rand(len(moves))
                 best_move_idx = np.argmax(action_probs)
                 selected_rand_mv, _, _, eat_point = moves[best_move_idx]
                 if game.current == current_color:
-                    total_eaten += eat_point
+                    total_eaten += (eat_point*10)
                 end, _, reward = game.update_state(selected_rand_mv)
                 if end:
-                    reward += total_eaten
+                    # reward += total_eaten
                     break
             else:
                 if not end:
@@ -176,10 +180,19 @@ class MCTS:
         visits = list(visits)
         for idx in range(len(visits)):
             y_diff = starts[idx][1] - ends[idx][1]
+            diff_abs = abs(y_diff)
+            # make sure chess pieces prefer to move forward
             if y_diff < 0 and current_color == 1:
-                visits[idx] += 1
+                visits[idx] += 10*(8/diff_abs)
             if y_diff > 0 and current_color == 2:
-                visits[idx] += 1
+                visits[idx] += 10*(8/diff_abs)
+            # secure chess piece at the end
+            if starts[idx][1] == 1 and current_color == 2:
+                visits[idx] += 15
+            if starts[idx][1] == 7 and current_color == 1:
+                visits[idx] += 15
+            if eaten[idx] > 0:
+                visits[idx] += 500
 
         return acts, visits, starts, ends, eaten
 
