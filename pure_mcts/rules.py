@@ -86,11 +86,15 @@ def has_won(board, white_step, black_step):
 
 
 def dfs(board, start_pt, end_pt, check_pt, current_eaten, target_eaten, player, visited, hop_depth):
+    #print(check_pt)
     if not check_boundary(end_pt):
+        #print("Out of bound")
         return [], visited
     if visited.get(end_pt):
+        #print("Visited")
         return [], visited
-    if board[check_pt[0], check_pt[1]] == 0:
+    if board[check_pt[0], check_pt[1]] == 0 and start_pt != check_pt:
+        #print("Cannot hop")
         return [], visited
     if hop_depth >= 99:
         return [], visited
@@ -114,6 +118,7 @@ def dfs(board, start_pt, end_pt, check_pt, current_eaten, target_eaten, player, 
 
 
 def get_all_move(board, start_pt, end_pt, eaten, player):
+    #print(board)
     ans, _ = dfs(board, start_pt, end_pt, start_pt, 0, eaten, player, {}, 0)
     ans.reverse()
     return ans
@@ -173,16 +178,19 @@ def next_steps(board, move=1):
 
 
 if __name__ == "__main__":
-    test = np.array([[1, 0, 0, 0, 0, 0, 0, 0],
-                     [1, 0, 0, 0, 0, 0, 0, 0],
-                     [1, 0, 0, 1, 0, 1, 0, 0],
-                     [0, 0, 0, 0, 1, 0, 0, 1],
-                     [1, 0, 0, 0, 2, 0, 0, 0],
-                     [0, 0, 0, 0, 0, 2, 0, 2],
+    test = np.array([[0, 1, 0, 0, 1, 0, 0, 0],
+                     [0, 1, 0, 0, 0, 0, 0, 0],
+                     [1, 0, 0, 0, 0, 0, 2, 0],
+                     [0, 1, 0, 0, 0, 2, 0, 2],
+                     [0, 1, 0, 1, 0, 2, 0, 0],
+                     [0, 0, 0, 0, 0, 1, 0, 2],
                      [1, 0, 0, 0, 0, 0, 2, 0],
                      [0, 0, 0, 0, 0, 0, 0, 2], ])
-    print(next_steps(test, 1))
-
+    res = next_steps(test, 2)
+    for board, startt, endd, eatenn in res:
+        if abs(startt[0] - endd[0]) > 1 or abs(startt[1] - endd[1]) > 1:
+            print(startt, endd)
+            print(get_all_move(board,startt, endd, eatenn, 2))
     test = np.array([[0, 0, 0, 0, 0, 0, 0, 0],
                      [1, 0, 0, 0, 0, 0, 0, 0],
                      [1, 1, 1, 0, 0, 0, 2, 0],

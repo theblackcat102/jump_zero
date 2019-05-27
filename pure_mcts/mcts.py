@@ -146,9 +146,9 @@ class MCTS:
                 best_move_idx = np.argmax(action_probs)
                 selected_rand_mv, _, _, eat_point = moves[best_move_idx]
                 if game.current == current_color:
-                    total_eaten += (eat_point*1.01)
+                    total_eaten += (eat_point*0.81)
                 else:
-                    eaten_by_opponent += (eat_point * 1.01)
+                    eaten_by_opponent += (eat_point * 0.81)
                 end, _, reward = game.update_state(selected_rand_mv)
                 if end:
                     reward += (total_eaten-eaten_by_opponent)
