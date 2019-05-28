@@ -128,7 +128,7 @@ class AlphaMCTS:
         current_color = game.current
 
         for _ in range(401):
-            if node.is_leaf() or depth > 400:
+            if node.is_leaf():
                 break
             # Greedily select next move.
             node_key, node = node.select(self._c_puct)
@@ -146,7 +146,7 @@ class AlphaMCTS:
 
         del game
         # backpropagation
-        node.update_recursive(-reward) # why negative ?
+        node.update_recursive(-value) # why negative ?
         return end
 
     def get_move_visits(self, state, temperature=1):
@@ -173,16 +173,16 @@ class AlphaMCTS:
             diff_abs = abs(y_diff)
             # make sure chess pieces prefer to move forward
             if y_diff < 0 and current_color == 1:
-                visits[idx] += 10*(8/diff_abs)
+                visits[idx] += (self._n_playout//4)*(8/diff_abs)
             if y_diff > 0 and current_color == 2:
-                visits[idx] += 10*(8/diff_abs)
+                visits[idx] += (self._n_playout//4)*(8/diff_abs)
             # secure chess piece at the end
             if starts[idx][1] == 1 and current_color == 2:
-                visits[idx] += 20
+                visits[idx] += (self._n_playout//3)
             if starts[idx][1] == 7 and current_color == 1:
-                visits[idx] += 20
+                visits[idx] += (self._n_playout//3)
             if eaten[idx] > 0:
-                visits[idx] += 10*eaten[idx]
+                visits[idx] += (self._n_playout//2)
         act_probs = softmax(1.0/temperature * np.log(np.array(visits) + 1e-10))
         return acts, act_probs, starts, ends, eaten
 
