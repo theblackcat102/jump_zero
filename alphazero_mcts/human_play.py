@@ -14,8 +14,20 @@ from mcts import MCTS as MCTS_Pure
 from alpha_mcts import AlphaMCTS
 import time
 from converter import DualResNetNumpy
+
 with open('numpy_nn.pkl', 'rb') as f:
     models = pickle.load(f)
+
+'''
+    Pytorch
+'''
+from dualresnet import DualResNet
+import torch
+
+model = DualResNet()
+checkpoint = torch.load(os.path.join('../checkpointv2', 'DualResNetv6.2_154.pt'), map_location='cpu')
+model.load_state_dict(checkpoint['network'])
+model.eval()
 
 def start_play(player1, player2, board_input,init_playout=60, start_player=1):
     players = {1: player1, 2: player2}
@@ -46,6 +58,7 @@ def start_play(player1, player2, board_input,init_playout=60, start_player=1):
         print('Time taken : {:.4f}'.format(end_t-start_t))
         end, winner, _ = board_input.update_state(move)
         if end:
+            print(move)
             if winner == 2:
                 print("Game end. Winner is player 2")
                 break
@@ -63,7 +76,7 @@ def run():
 
         mcts_player_1 = MCTS_Pure(c_puct=5, n_playout=20)
         # mcts_player_2 = MCTS_Pure(c_puct=5, n_playout=30)
-        mcts_player_2 = AlphaMCTS(models.policyvalue_function, c_puct=5, n_playout=200)
+        mcts_player_2 = AlphaMCTS(models.policyvalue_function, c_puct=0.2, n_playout=600)
 
         start_play(mcts_player_1, mcts_player_2, game)
     except KeyboardInterrupt:

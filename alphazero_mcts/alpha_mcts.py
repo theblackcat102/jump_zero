@@ -169,20 +169,20 @@ class AlphaMCTS:
         current_color = state.current
         visits = list(visits)
         for idx in range(len(visits)):
-            y_diff = starts[idx][1] - ends[idx][1]
-            diff_abs = abs(y_diff)
-            # make sure chess pieces prefer to move forward
-            if y_diff < 0 and current_color == 1:
-                visits[idx] += (self._n_playout//4)*(8/diff_abs)
-            if y_diff > 0 and current_color == 2:
-                visits[idx] += (self._n_playout//4)*(8/diff_abs)
-            # secure chess piece at the end
-            if starts[idx][1] == 1 and current_color == 2:
-                visits[idx] += (self._n_playout//3)
-            if starts[idx][1] == 7 and current_color == 1:
-                visits[idx] += (self._n_playout//3)
+        #     y_diff = starts[idx][1] - ends[idx][1]
+        #     diff_abs = abs(y_diff)
+        #     # make sure chess pieces prefer to move forward
+        #     if y_diff < 0 and current_color == 1:
+        #         visits[idx] += (self._n_playout//4)*(8/diff_abs)
+        #     if y_diff > 0 and current_color == 2:
+        #         visits[idx] += (self._n_playout//4)*(8/diff_abs)
+        #     # secure chess piece at the end
+        #     if starts[idx][1] == 1 and current_color == 2:
+        #         visits[idx] += (self._n_playout//3)
+        #     if starts[idx][1] == 7 and current_color == 1:
+        #         visits[idx] += (self._n_playout//3)
             if eaten[idx] > 0:
-                visits[idx] += (self._n_playout//2)
+                visits[idx] += self._n_playout
         act_probs = softmax(1.0/temperature * np.log(np.array(visits) + 1e-10))
         return acts, act_probs, starts, ends, eaten
 
@@ -198,6 +198,7 @@ class AlphaMCTS:
         start = starts[max_probability_index]
         end = ends[max_probability_index]
         eat = eaten[max_probability_index]
+        print('choose probability {:.4f}'.format(probability[max_probability_index]))
         return step, start, end, eat
 
     def update_with_move(self, new_move):
